@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/plan/plan_screen.dart';
 import '../features/rooms/room_screen.dart';
+import '../features/shop/shop_screen.dart';
 import '../features/today/today_screen.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -40,8 +42,8 @@ class Shell extends ConsumerWidget {
 
   Widget _roomFor(Room r) => switch (r) {
         Room.today => const TodayScreen(),
-        Room.shop => const RoomScreen(room: RoomInfo.shop),
-        Room.plan => const RoomScreen(room: RoomInfo.plan),
+        Room.shop => const ShopScreen(),
+        Room.plan => const PlanScreen(),
         Room.progress => const RoomScreen(room: RoomInfo.progress),
         Room.profile => const RoomScreen(room: RoomInfo.profile),
       };

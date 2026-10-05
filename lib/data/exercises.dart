@@ -1,3 +1,5 @@
+import 'equipment.dart';
+
 /// One move the user and Clover do together.
 class Exercise {
   const Exercise({
@@ -7,6 +9,7 @@ class Exercise {
     required this.seconds,
     required this.effort,
     this.strains = const {},
+    this.equipment,
   });
 
   final String id;
@@ -21,6 +24,9 @@ class Exercise {
 
   /// Body parts it loads; skipped for users who asked to go easy on them.
   final Set<String> strains;
+
+  /// Gear id this needs, or null for bodyweight moves.
+  final String? equipment;
 
   /// Ten paws per effort point (same economy as Avelo).
   int get paws => (effort * 10).round().clamp(5, 100);
@@ -105,12 +111,24 @@ const dailyExercises = <Exercise>[
   ]),
 ];
 
-/// Today's picks: up to ten, in a stable order for the day so swapping feels
-/// like browsing her list, not a dice roll.
-List<Exercise> picksFor(String day, {Set<String> limits = const {}}) {
-  final safe = dailyExercises.where((e) => e.strains.intersection(limits).isEmpty).toList();
-  final list = safe.length >= 3 ? safe : dailyExercises.toList();
+/// Today's picks: gear moves the user owns come first (they pay more), then
+/// the bodyweight basics, up to ten, in a stable order for the day so swapping
+/// feels like browsing her list, not a dice roll.
+List<Exercise> picksFor(String day, {Set<String> owned = const {}, Set<String> limits = const {}}) {
+  final gear = gearExercises.where((e) => owned.contains(e.equipment)).toList();
+  final safe = [...gear, ...dailyExercises].where((e) => e.strains.intersection(limits).isEmpty).toList();
+  final list = safe.length >= 3 ? safe : [...gear, ...dailyExercises];
   final seed = day.codeUnits.fold<int>(7, (a, c) => (a * 31 + c) & 0x7fffffff);
-  final shift = seed % list.length;
-  return [...list.skip(shift), ...list.take(shift)].take(10).toList();
+  final basics = list.where((e) => e.equipment == null).toList();
+  final shift = basics.isEmpty ? 0 : seed % basics.length;
+  final rotated = [...basics.skip(shift), ...basics.take(shift)];
+  return [...list.where((e) => e.equipment != null), ...rotated].take(10).toList();
+}
+
+/// Finds any move by id.
+Exercise? exerciseById(String id) {
+  for (final e in [...gearExercises, ...dailyExercises]) {
+    if (e.id == id) return e;
+  }
+  return null;
 }

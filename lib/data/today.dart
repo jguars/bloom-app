@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'equipment.dart';
 import 'exercises.dart';
 
 /// Bonus for doing all three moves in a day.
@@ -22,6 +23,8 @@ class TodayState {
     required this.pick,
     required this.paws,
     required this.bonusPaid,
+    this.owned = const [],
+    this.forced,
     this.loaded = false,
   });
 
@@ -36,22 +39,32 @@ class TodayState {
   /// Paws balance.
   final int paws;
   final bool bonusPaid;
+
+  /// Gear ids owned, in the order bought.
+  final List<String> owned;
+
+  /// A move chosen outside her picks (e.g. "Try it with Clover" after buying
+  /// gear); used once, then cleared.
+  final String? forced;
   final bool loaded;
 
-  List<Exercise> get picks => picksFor(day);
-  Exercise get current => picks[pick % picks.length];
+  List<Exercise> get picks => picksFor(day, owned: owned.toSet());
+  Exercise get current => (forced == null ? null : exerciseById(forced!)) ?? picks[pick % picks.length];
+  bool owns(String id) => owned.contains(id);
   bool get goalMet => done >= kDailyGoal;
 
-  TodayState copyWith({String? day, int? done, int? pick, int? paws, bool? bonusPaid, bool? loaded}) => TodayState(
+  TodayState copyWith({String? day, int? done, int? pick, int? paws, bool? bonusPaid, List<String>? owned, String? forced, bool clearForced = false, bool? loaded}) => TodayState(
         day: day ?? this.day,
         done: done ?? this.done,
         pick: pick ?? this.pick,
         paws: paws ?? this.paws,
         bonusPaid: bonusPaid ?? this.bonusPaid,
+        owned: owned ?? this.owned,
+        forced: clearForced ? null : (forced ?? this.forced),
         loaded: loaded ?? this.loaded,
       );
 
-  Map<String, Object?> toJson() => {'day': day, 'done': done, 'pick': pick, 'paws': paws, 'bonus': bonusPaid};
+  Map<String, Object?> toJson() => {'day': day, 'done': done, 'pick': pick, 'paws': paws, 'bonus': bonusPaid, 'owned': owned};
 }
 
 /// What finishing a move earned, so the UI can celebrate each part.
@@ -83,6 +96,7 @@ class TodayNotifier extends Notifier<TodayState> {
     }
     final j = jsonDecode(raw) as Map<String, Object?>;
     final paws = (j['paws'] as num?)?.toInt() ?? 0;
+    final owned = (j['owned'] as List?)?.cast<String>() ?? const <String>[];
     if (j['day'] == today) {
       state = TodayState(
         day: today,
@@ -90,11 +104,12 @@ class TodayNotifier extends Notifier<TodayState> {
         pick: (j['pick'] as num?)?.toInt() ?? 0,
         paws: paws,
         bonusPaid: j['bonus'] == true,
+        owned: owned,
         loaded: true,
       );
     } else {
       // A new day: the ring empties, the balance stays.
-      state = TodayState(day: today, done: 0, pick: 0, paws: paws, bonusPaid: false, loaded: true);
+      state = TodayState(day: today, done: 0, pick: 0, paws: paws, bonusPaid: false, owned: owned, loaded: true);
       _save();
     }
   }
@@ -106,7 +121,7 @@ class TodayNotifier extends Notifier<TodayState> {
 
   /// "Show me something else".
   void swap() {
-    state = state.copyWith(pick: (state.pick + 1) % state.picks.length);
+    state = state.copyWith(pick: (state.pick + 1) % state.picks.length, clearForced: true);
     _save();
   }
 
@@ -116,10 +131,26 @@ class TodayNotifier extends Notifier<TodayState> {
     final ex = state.current;
     final doneNow = (state.done + 1).clamp(0, 99);
     final bonus = (doneNow >= kDailyGoal && !state.bonusPaid) ? kDailyBonus : 0;
-    state = state.copyWith(done: doneNow, pick: (state.pick + 1) % state.picks.length, bonusPaid: state.bonusPaid || bonus > 0);
+    state = state.copyWith(
+      done: doneNow,
+      pick: state.forced == null ? (state.pick + 1) % state.picks.length : state.pick,
+      bonusPaid: state.bonusPaid || bonus > 0,
+      clearForced: true,
+    );
     _save();
     return Reward(paws: ex.paws, bonus: bonus, doneNow: doneNow);
   }
+
+  /// Buys [item] if affordable. Returns false (and changes nothing) if not.
+  bool buy(Equipment item) {
+    if (state.owns(item.id) || state.paws < item.price) return false;
+    state = state.copyWith(paws: state.paws - item.price, owned: [...state.owned, item.id]);
+    _save();
+    return true;
+  }
+
+  /// Puts [ex] up next, e.g. right after unlocking it.
+  void pickExercise(Exercise ex) => state = state.copyWith(forced: ex.id);
 
   void addPaws(int n) {
     state = state.copyWith(paws: (state.paws + n).clamp(0, 1 << 30));
