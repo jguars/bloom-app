@@ -2,17 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/clock.dart';
+import '../../app/feel.dart';
 import '../../app/motion.dart';
+import '../../app/sfx.dart';
+import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
+import '../../data/journal.dart';
 import '../../data/today.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
+import '../../ui/room_frame.dart';
 import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
+import 'check_in_sheet.dart';
 import 'flow.dart';
 import 'ready_screen.dart';
 
@@ -31,7 +39,24 @@ class TodayScreen extends ConsumerStatefulWidget {
 }
 
 class _TodayScreenState extends ConsumerState<TodayScreen> {
+  static const _offeredKey = 'bloom.checkin.offered';
   final _chipKey = GlobalKey();
+
+  /// The day the check-in last opened by itself, so it only does once.
+  String? _offered;
+  bool _offeredLoaded = false, _autoScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (!mounted) return;
+      setState(() {
+        _offered = p.getString(_offeredKey);
+        _offeredLoaded = true;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +64,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     ref.listen(pendingRewardProvider, (_, r) {
       if (r != null) _playReward(r);
     });
+    ref.listen(checkInRequestProvider, (_, _) => _openCheckIn());
+    final clockNow = ref.watch(clockProvider)();
+    final evening = clockNow.hour >= kEveningHour;
+    final checkIn = ref.watch(journalProvider.select((j) => j.todayLog.checkIn));
+    final visible = ref.watch(roomProvider) == Room.today;
+    if (evening && checkIn == null && visible && _offeredLoaded && !_autoScheduled && _offered != s.day) {
+      _autoScheduled = true;
+      Future.delayed(const Duration(milliseconds: 1400), () => _autoOpen(s.day));
+    }
     final mq = MediaQuery.of(context);
     final sceneH = (mq.size.height * .47).clamp(340.0, 470.0);
     final now = DateTime.now();
@@ -57,10 +91,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             PawChip(key: _chipKey, paws: s.paws),
           ]),
         ),
-        Positioned(left: 140, right: 16, top: sceneH * .33, child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: _lines[s.done.clamp(0, 3)]))),
+        Positioned(left: 140, right: 16, top: sceneH * .33, child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: evening && checkIn != null ? checkIn.reply : _lines[s.done.clamp(0, 3)]))),
         Positioned.fill(
           top: sceneH - 40,
-          child: Padding(
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
             padding: EdgeInsets.fromLTRB(16, 0, 16, 96 + mq.padding.bottom),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
@@ -93,6 +128,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                         onSwap: () => ref.read(todayProvider.notifier).swap(),
                       ),
               ),
+              if (evening) ...[
+                const SizedBox(height: 12),
+                RiseIn(delay: const Duration(milliseconds: 200), child: _CheckInRow(answer: checkIn, onTap: _openCheckIn)),
+              ],
             ]),
           ),
         ),
@@ -101,6 +140,37 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 
   void _open(Exercise ex) => Navigator.of(context).push(bloomRoute(ReadyScreen(ex: ex)));
+
+  /// Opens the check-in by itself, once per evening, when nothing else is
+  /// happening on Today.
+  Future<void> _autoOpen(String day) async {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    final busy = !(route?.isCurrent ?? true) || ref.read(pendingRewardProvider) != null || ref.read(roomProvider) != Room.today;
+    if (busy) {
+      _autoScheduled = false; // try again next time Today rebuilds
+      return;
+    }
+    _offered = day;
+    (await SharedPreferences.getInstance()).setString(_offeredKey, day);
+    if (mounted) _openCheckIn();
+  }
+
+  Future<void> _openCheckIn() async {
+    final r = await showBloomSheet<CheckInResult>(context, (c) => const CheckInSheet());
+    if (r == null || !mounted) return;
+    SfxPlayer.instance.play(r.answer == CheckIn.all ? Sfx.cheer : Sfx.pop);
+    Feel.mediumImpact();
+    final size = MediaQuery.of(context).size;
+    if (r.answer == CheckIn.all) FxLayer.burst(Offset(size.width / 2, size.height * .35), count: 60, power: .9);
+    if (!r.first) return;
+    final chip = _chipKey.currentContext?.findRenderObject() as RenderBox?;
+    final target = chip == null ? Offset(size.width - 60, 70) : chip.localToGlobal(chip.size.center(Offset.zero));
+    final from = r.from == Offset.zero ? Offset(size.width / 2, size.height * .7) : r.from;
+    FxLayer.fly(from, target, '+$kCheckInPaws', delay: const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    if (mounted) ref.read(todayProvider.notifier).addPaws(kCheckInPaws);
+  }
 
   /// Paw chips fly from the middle of the screen into the balance, then the
   /// balance counts up; filling the ring adds a burst and the bonus.
@@ -234,4 +304,48 @@ class _MoveTileState extends State<_MoveTile> with SingleTickerProviderStateMixi
           child: const Icon(Icons.directions_run_rounded, color: BloomColors.sageDeep, size: 34),
         ),
       );
+}
+
+/// Evening only: the way into the check-in, or what was answered.
+class _CheckInRow extends StatelessWidget {
+  const _CheckInRow({required this.answer, required this.onTap});
+  final CheckIn? answer;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = answer != null;
+    return Semantics(
+      button: true,
+      label: done ? 'Checked in: ${answer!.label}. Change it' : 'How did today go? Check in',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: done ? BloomColors.forestSoft : BloomColors.surface,
+            borderRadius: BorderRadius.circular(BloomSpace.rMd),
+            border: Border.all(color: done ? Colors.transparent : BloomColors.mustard, width: 2),
+            boxShadow: done ? null : const [BoxShadow(color: BloomColors.mustardSoft, offset: Offset(0, 3))],
+          ),
+          child: Row(children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: done ? BloomColors.surface : BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
+              child: Icon(done ? Icons.check_rounded : Icons.nightlight_round, color: done ? BloomColors.forest : BloomColors.mustardPress, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(done ? 'Checked in · ${answer!.label}' : 'How did today go?', style: BloomText.headline.copyWith(fontSize: 16, height: 22 / 16)),
+                Text(done ? 'Tap to change it' : 'Evening check-in · +$kCheckInPaws paws', style: BloomText.caption),
+              ]),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: BloomColors.inkMuted),
+          ]),
+        ),
+      ),
+    );
+  }
 }

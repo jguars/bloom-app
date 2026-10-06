@@ -14,6 +14,10 @@ abstract final class Reminders {
   static Future<void>? _starting;
 
   static const _morningId = 1, _eveningId = 2;
+
+  /// The reminder the user tapped to open the app ('morning' or 'evening').
+  /// The shell listens and goes to the right room.
+  static final tapped = ValueNotifier<String?>(null);
   static const _details = NotificationDetails(
     android: AndroidNotificationDetails('clover', 'Clover’s reminders', channelDescription: 'A gentle nudge in the morning and the evening.', importance: Importance.defaultImportance),
     iOS: DarwinNotificationDetails(),
@@ -31,8 +35,12 @@ abstract final class Reminders {
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
           iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
         ),
+        onDidReceiveNotificationResponse: (r) => tapped.value = r.payload,
       );
       _ready = true;
+      // Opened from a reminder while the app wasn't running.
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) tapped.value = launch!.notificationResponse?.payload;
     } catch (e) {
       debugPrint('Reminders: not available: $e');
     }
@@ -60,14 +68,14 @@ abstract final class Reminders {
     try {
       await _plugin.cancel(id: _morningId);
       await _plugin.cancel(id: _eveningId);
-      if (p.morning) await _daily(_morningId, p.morningAt, p.catName, 'Morning! Shall we look at today’s plan together?');
-      if (p.evening) await _daily(_eveningId, p.eveningAt, p.catName, 'How did today go? Come tell me.');
+      if (p.morning) await _daily(_morningId, p.morningAt, p.catName, 'Morning! Shall we look at today’s plan together?', 'morning');
+      if (p.evening) await _daily(_eveningId, p.eveningAt, p.catName, 'How did today go? Come tell me.', 'evening');
     } catch (e) {
       debugPrint('Reminders: scheduling failed: $e');
     }
   }
 
-  static Future<void> _daily(int id, int minutes, String title, String body) {
+  static Future<void> _daily(int id, int minutes, String title, String body, String payload) {
     final now = tz.TZDateTime.now(tz.local);
     var at = tz.TZDateTime(tz.local, now.year, now.month, now.day, minutes ~/ 60, minutes % 60);
     if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
@@ -78,6 +86,7 @@ abstract final class Reminders {
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       title: title,
       body: body,
+      payload: payload,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }

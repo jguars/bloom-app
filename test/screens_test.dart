@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bloom/app/clock.dart';
 import 'package:bloom/app/shell.dart';
 import 'package:bloom/app/theme.dart';
 import 'package:bloom/data/exercises.dart';
@@ -34,11 +35,14 @@ Future<void> _fonts() async {
   await m.load();
 }
 
-Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> assets = const [], Future<void> Function(WidgetTester)? then, Map<String, Object> prefs = const {}}) async {
+Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> assets = const [], Future<void> Function(WidgetTester)? then, Map<String, Object> prefs = const {}, int hour = 10}) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   SharedPreferences.setMockInitialValues(prefs);
+  final now = DateTime.now();
+  final pinned = DateTime(now.year, now.month, now.day, hour, 40);
   await tester.pumpWidget(ProviderScope(
+    overrides: [clockProvider.overrideWithValue(() => pinned)],
     child: MaterialApp(theme: bloomTheme(), debugShowCheckedModeBanner: false, builder: (c, child) => FxLayer.wrap(child!), home: home),
   ));
   await tester.runAsync(() async {
@@ -67,7 +71,7 @@ Map<String, Object> _seed() {
   for (var i = 0; i <= 16; i++) {
     final d = start.add(Duration(days: i));
     final moves = [2, 3, 1, 0, 3, 2, 1][i % 7];
-    days[dayKey(d)] = {'m': moves, 's': moves * 140, 'k': i.isEven ? ['m1', 's1', 's2'] : ['m1', 'm2'], 'r': 6};
+    days[dayKey(d)] = {'m': moves, 's': moves * 140, 'k': i.isEven ? ['m1', 's1', 's2'] : ['m1', 'm2'], 'r': 6, if (i % 3 != 0 && i < 16) 'c': ['all', 'mostly'][i % 2]};
   }
   final kg = [92.0, 91.6, 91.7, 91.1, 90.8, 90.2, 89.9];
   return {
@@ -78,6 +82,28 @@ Map<String, Object> _seed() {
     }),
     'bloom.profile.v1': jsonEncode({'name': 'Sam'}),
   };
+}
+
+/// Today's plan with two rules kept, for the check-in.
+Map<String, Object> _evening({String? answer}) {
+  final seed = _seed();
+  final today = dayKey(DateTime.now());
+  seed['bloom.plan.v1'] = jsonEncode({
+    'day': today,
+    'kept': ['m1', 's2'],
+    'rules': [
+      {'id': 'm1', 'kind': 'more', 'title': 'Morning walk', 'icon': 'walk'},
+      {'id': 'm2', 'kind': 'more', 'title': 'Drink water first', 'icon': 'water'},
+      {'id': 's1', 'kind': 'skip', 'title': 'Sugary drinks', 'icon': 'drink'},
+      {'id': 's2', 'kind': 'skip', 'title': 'Fast food', 'icon': 'fastfood'},
+    ],
+  });
+  if (answer != null) {
+    final j = jsonDecode(seed['bloom.journal.v1']! as String) as Map<String, dynamic>;
+    (j['days'] as Map<String, dynamic>)[today] = {'m': 1, 's': 120, 'k': ['m1', 's2'], 'r': 4, 'c': answer};
+    seed['bloom.journal.v1'] = jsonEncode(j);
+  }
+  return seed;
 }
 
 void main() {
@@ -180,4 +206,12 @@ void main() {
       }));
   testWidgets('ob-journey', (t) => _shot(t, 'ob-journey', const OnboardingFlow(), assets: obAssets, then: toJourney));
   testWidgets('paywall', (t) => _shot(t, 'paywall', Scaffold(body: PaywallScreen(onDone: () {})), assets: obAssets));
+
+  testWidgets('check-in', (t) => _shot(t, 'check-in', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(), hour: 20));
+  testWidgets('check-in-picked', (t) => _shot(t, 'check-in-picked', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(), hour: 20, then: (t) async {
+        await t.tap(find.text('Stuck to it'));
+        await t.pump(const Duration(milliseconds: 200));
+        await t.tap(find.text('Drink water first').last);
+      }));
+  testWidgets('today-checked-in', (t) => _shot(t, 'today-checked-in', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'mostly'), hour: 20));
 }

@@ -6,8 +6,10 @@ import '../features/plan/plan_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/progress/progress_screen.dart';
 import '../features/shop/shop_screen.dart';
+import '../features/today/flow.dart';
 import '../features/today/today_screen.dart';
 import 'motion.dart';
+import 'reminders.dart';
 import 'theme.dart';
 
 /// The house: five rooms behind one floating tab bar.
@@ -37,6 +39,7 @@ class Shell extends ConsumerWidget {
             child: TickerMode(enabled: r == room, child: _roomFor(r)),
           ),
         Positioned(left: 16, right: 16, bottom: 16 + MediaQuery.of(context).padding.bottom, child: const BloomTabBar()),
+        const _ReminderRouter(),
       ]),
     );
   }
@@ -120,4 +123,43 @@ class BloomTabBar extends ConsumerWidget {
       }),
     );
   }
+}
+
+/// Opening the app from a reminder goes to the right room: the morning one to
+/// the plan, the evening one to Today with the check-in open.
+class _ReminderRouter extends ConsumerStatefulWidget {
+  const _ReminderRouter();
+  @override
+  ConsumerState<_ReminderRouter> createState() => _ReminderRouterState();
+}
+
+class _ReminderRouterState extends ConsumerState<_ReminderRouter> {
+  @override
+  void initState() {
+    super.initState();
+    Reminders.tapped.addListener(_route);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _route());
+  }
+
+  @override
+  void dispose() {
+    Reminders.tapped.removeListener(_route);
+    super.dispose();
+  }
+
+  void _route() {
+    final which = Reminders.tapped.value;
+    if (which == null || !mounted) return;
+    Reminders.tapped.value = null;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    if (which == 'morning') {
+      ref.read(roomProvider.notifier).go(Room.plan);
+    } else {
+      ref.read(roomProvider.notifier).go(Room.today);
+      ref.read(checkInRequestProvider.notifier).ask();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

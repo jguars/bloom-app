@@ -35,9 +35,26 @@ const milestones = [
 ];
 
 /// One day's record: moves done together and plan rules kept.
+/// The evening check-in answer.
+enum CheckIn {
+  all('Stuck to it', 'Proud of us! Sleep well.'),
+  mostly('Mostly', 'Mostly is plenty. Tomorrow’s a fresh page.'),
+  not('Not today', 'That’s okay. I saved you a spot on the mat.');
+
+  const CheckIn(this.label, this.reply);
+  final String label;
+
+  /// What Clover says back. Never shaming.
+  final String reply;
+}
+
+/// Paws for checking in, whatever the answer.
+const kCheckInPaws = 5;
+
 class DayLog {
-  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0});
+  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0, this.checkIn});
   final int moves, seconds;
+  final CheckIn? checkIn;
 
   /// Ids of plan rules kept that day.
   final List<String> kept;
@@ -45,15 +62,16 @@ class DayLog {
   /// How many rules the plan had that day.
   final int rules;
 
-  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules}) =>
-      DayLog(moves: moves ?? this.moves, seconds: seconds ?? this.seconds, kept: kept ?? this.kept, rules: rules ?? this.rules);
+  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules, CheckIn? checkIn}) =>
+      DayLog(moves: moves ?? this.moves, seconds: seconds ?? this.seconds, kept: kept ?? this.kept, rules: rules ?? this.rules, checkIn: checkIn ?? this.checkIn);
 
-  Map<String, Object?> toJson() => {'m': moves, 's': seconds, 'k': kept, 'r': rules};
+  Map<String, Object?> toJson() => {'m': moves, 's': seconds, 'k': kept, 'r': rules, if (checkIn != null) 'c': checkIn!.name};
   factory DayLog.fromJson(Map<String, Object?> j) => DayLog(
         moves: (j['m'] as num?)?.toInt() ?? 0,
         seconds: (j['s'] as num?)?.toInt() ?? 0,
         kept: (j['k'] as List?)?.cast<String>() ?? const [],
         rules: (j['r'] as num?)?.toInt() ?? 0,
+        checkIn: CheckIn.values.asNameMap()[j['c']],
       );
 }
 
@@ -98,6 +116,7 @@ class Journal {
   }
 
   DayLog on(DateTime d) => days[dayKey(d)] ?? const DayLog();
+  DayLog get todayLog => days[today] ?? const DayLog();
   int get totalMoves => days.values.fold(0, (a, d) => a + d.moves);
 
   /// Monday to Sunday of the week containing today.
@@ -168,6 +187,14 @@ class JournalNotifier extends Notifier<Journal> {
     _put(d.copyWith(moves: d.moves + 1, seconds: d.seconds + ex.seconds));
     state = state.copyWith(effort: state.effort + ex.effort);
     _save();
+  }
+
+  /// The evening check-in. Returns true the first time today (paws are due).
+  bool logCheckIn(CheckIn c) {
+    final first = _todayLog.checkIn == null;
+    _put(_todayLog.copyWith(checkIn: c));
+    _save();
+    return first;
   }
 
   /// Today's plan as it stands: which rules are kept, out of how many.

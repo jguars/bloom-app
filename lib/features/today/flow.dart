@@ -31,3 +31,12 @@ class PendingReward extends Notifier<Reward?> {
   Reward? build() => null;
   void set(Reward? r) => state = r;
 }
+
+/// Asks Today to open the evening check-in (e.g. from the evening reminder).
+final checkInRequestProvider = NotifierProvider<CheckInRequest, int>(CheckInRequest.new);
+
+class CheckInRequest extends Notifier<int> {
+  @override
+  int build() => 0;
+  void ask() => state++;
+}
