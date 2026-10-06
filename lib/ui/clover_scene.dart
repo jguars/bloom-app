@@ -7,33 +7,55 @@ import '../app/theme.dart';
 import 'clover_mini.dart';
 import 'clover_rive.dart';
 
-/// Clover marching through the park (assets/rive/march_scene.riv): she walks
-/// in place while the park layers scroll right to left at her stride, so it
-/// reads as walking. When [walking] is false the park freezes where it is and
-/// she eases into her rest pose (still breathing).
-///
-/// The artboard is 900×1200 with her feet at y = 1025; it's shown with
-/// [rive.Fit.cover] anchored to the bottom so the path never crops, then fades
-/// into the panel below like the other scenes.
-class MarchSceneView extends StatefulWidget {
-  const MarchSceneView({super.key, required this.height, this.walking = true, this.fadeHeight = 48});
-  final double height;
-  final bool walking;
-  final double fadeHeight;
+/// The painted Clover rig inside one of her Rive scenes. Each scene is its own
+/// artboard (exported with the CloverRig nested in it) and shares CloverRigVM:
+/// `walking` + `action` (March) and `eyesOpen` (Ready).
+enum CloverScene {
+  /// She walks in place while the park scrolls at her stride (session, marching moves).
+  march('assets/rive/march_scene.riv', 'MarchScene', 'assets/scenes/march-empty.jpg'),
 
-  static Future<rive.File?>? _file;
-  static void preload() => _load();
+  /// Close-up on the living-room rug: eyes pop open, fist pump, eager bounce.
+  ready('assets/rive/ready_scene.riv', 'ReadyScene', 'assets/scenes/ready-empty.jpg');
 
-  static Future<rive.File?> _load() => _file ??= rive.File.asset('assets/rive/march_scene.riv', riveFactory: riveFactory);
+  const CloverScene(this.asset, this.artboard, this.fallback);
+  final String asset, artboard;
 
-  @override
-  State<MarchSceneView> createState() => _MarchSceneViewState();
+  /// Shown under widget tests, where Rive can't draw.
+  final String fallback;
+
+  static final _files = <CloverScene, Future<rive.File?>>{};
+  Future<rive.File?> load() => _files[this] ??= rive.File.asset(asset, riveFactory: riveFactory);
+
+  /// Decodes every scene ahead of time so opening one doesn't stall.
+  static void preloadAll() {
+    for (final s in values) {
+      s.load();
+    }
+  }
 }
 
-class _MarchSceneViewState extends State<MarchSceneView> {
+/// Plays a [CloverScene] filling [height], anchored to the bottom so her feet
+/// never crop, fading into the panel below like the other scenes.
+class CloverSceneView extends StatefulWidget {
+  const CloverSceneView({super.key, required this.scene, required this.height, this.walking = false, this.eyesOpen = false, this.fadeHeight = 48});
+  final CloverScene scene;
+  final double height;
+
+  /// March: the park scrolls and she marches. Off: the park freezes and she rests.
+  final bool walking;
+
+  /// Ready: her eyes and smile open and she plays the intro, then the eager loop.
+  final bool eyesOpen;
+  final double fadeHeight;
+
+  @override
+  State<CloverSceneView> createState() => _CloverSceneViewState();
+}
+
+class _CloverSceneViewState extends State<CloverSceneView> {
   rive.RiveWidgetController? _controller;
   rive.ViewModelInstance? _vm;
-  rive.ViewModelInstanceBoolean? _walking;
+  rive.ViewModelInstanceBoolean? _walking, _eyes;
   rive.ViewModelInstanceNumber? _action;
   bool _failed = false;
 
@@ -50,9 +72,9 @@ class _MarchSceneViewState extends State<MarchSceneView> {
       return;
     }
     try {
-      final file = await MarchSceneView._load();
+      final file = await widget.scene.load();
       if (file == null || !mounted) return;
-      final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName('MarchScene'), stateMachineSelector: rive.StateMachineSelector.byDefault());
+      final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName(widget.scene.artboard), stateMachineSelector: rive.StateMachineSelector.byDefault());
       // The scene and the Clover nested in it share CloverRigVM.
       final vm = c.dataBind(rive.DataBind.auto());
       setState(() {
@@ -60,10 +82,11 @@ class _MarchSceneViewState extends State<MarchSceneView> {
         _vm = vm;
         _walking = vm.boolean('walking');
         _action = vm.number('action');
+        _eyes = vm.boolean('eyesOpen');
       });
       _push();
     } catch (e) {
-      debugPrint('Rive: could not load the march scene: $e');
+      debugPrint('Rive: could not load ${widget.scene.artboard}: $e');
       if (mounted) setState(() => _failed = true);
     }
   }
@@ -71,18 +94,20 @@ class _MarchSceneViewState extends State<MarchSceneView> {
   void _push() {
     _walking?.value = widget.walking;
     _action?.value = (widget.walking ? CloverAction.march : CloverAction.rest).value.toDouble();
+    _eyes?.value = widget.eyesOpen;
   }
 
   @override
-  void didUpdateWidget(MarchSceneView old) {
+  void didUpdateWidget(CloverSceneView old) {
     super.didUpdateWidget(old);
-    if (old.walking != widget.walking) _push();
+    if (old.walking != widget.walking || old.eyesOpen != widget.eyesOpen) _push();
   }
 
   @override
   void dispose() {
     _walking?.dispose();
     _action?.dispose();
+    _eyes?.dispose();
     _vm?.dispose();
     _controller?.dispose();
     super.dispose();
@@ -94,7 +119,7 @@ class _MarchSceneViewState extends State<MarchSceneView> {
     final Widget art;
     if (_failed) {
       art = Stack(fit: StackFit.expand, children: [
-        Image.asset('assets/scenes/march-empty.jpg', fit: BoxFit.cover, alignment: Alignment.bottomCenter),
+        Image.asset(widget.scene.fallback, fit: BoxFit.cover, alignment: Alignment.bottomCenter),
         Positioned(left: 0, right: 0, bottom: widget.height * .17, child: Center(child: CloverMini(bodyMass: 60, size: widget.height * .3))),
       ]);
     } else if (c == null) {

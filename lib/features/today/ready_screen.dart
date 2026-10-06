@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
-import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
-import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
 import 'flow.dart';
 import 'session_screen.dart';
@@ -41,7 +40,8 @@ class _ReadyScreenState extends State<ReadyScreen> {
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/ready-empty.jpg', height: sceneH, fadeHeight: 80, groundAt: .86, characterSize: .66, character: LiveClover(eyesOpen: _eyes))),
+        // Close-up on the living-room rug; her eyes open just after the screen lands.
+        Positioned(left: 0, right: 0, top: 0, child: CloverSceneView(scene: CloverScene.ready, height: sceneH, eyesOpen: _eyes, fadeHeight: 80)),
         Positioned(
           left: 12,
           top: mq.padding.top + 8,

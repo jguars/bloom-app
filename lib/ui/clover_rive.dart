@@ -7,7 +7,7 @@ import 'package:rive/rive.dart' as rive;
 import '../data/exercises.dart';
 import '../data/journal.dart';
 import 'clover_mini.dart';
-import 'march_scene.dart';
+import 'clover_scene.dart';
 
 /// Which Rive renderer draws Clover and her scenes. Flutter's canvas measured
 /// about 5x cheaper per frame than Rive's own renderer on a Xiaomi 13 (UI
@@ -68,7 +68,7 @@ class CloverRive extends StatefulWidget {
   static void preload() {
     if (!_nativeReady) return;
     _load();
-    MarchSceneView.preload();
+    CloverScene.preloadAll();
   }
 
   static Future<rive.File?> _load() => _file ??= rive.File.asset(

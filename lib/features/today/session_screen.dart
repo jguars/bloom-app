@@ -11,7 +11,7 @@ import '../../data/exercises.dart';
 import '../../data/today.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/ledge_button.dart';
-import '../../ui/march_scene.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
 import 'celebration_screen.dart';
@@ -98,7 +98,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
           top: 0,
           // Marching moves walk through the scrolling park; the rest stay in the still scene.
           child: action == CloverAction.march
-              ? MarchSceneView(height: sceneH, walking: _count == 0 && !_paused)
+              ? CloverSceneView(scene: CloverScene.march, height: sceneH, walking: _count == 0 && !_paused)
               : Scene(
                   asset: 'assets/scenes/march-empty.jpg',
                   height: sceneH,
