@@ -22,7 +22,9 @@ class MarchSceneView extends StatefulWidget {
   final double fadeHeight;
 
   static Future<rive.File?>? _file;
-  static Future<rive.File?> _load() => _file ??= rive.File.asset('assets/rive/march_scene.riv', riveFactory: rive.Factory.rive);
+  static void preload() => _load();
+
+  static Future<rive.File?> _load() => _file ??= rive.File.asset('assets/rive/march_scene.riv', riveFactory: riveFactory);
 
   @override
   State<MarchSceneView> createState() => _MarchSceneViewState();

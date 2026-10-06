@@ -1,3 +1,6 @@
+import 'app/perf_probe.dart';
+import 'app/perf_tour.dart';
+
 import 'dart:async';
 
 import 'package:alarm/alarm.dart';
@@ -18,7 +21,12 @@ import 'ui/fx_layer.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CloverRive.init();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
   SfxPlayer.instance.init();
   Reminders.init();
   try {
@@ -26,6 +34,7 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Alarms unavailable: $e');
   }
+  PerfProbe.start();
   runApp(const ProviderScope(child: BloomApp()));
 }
 
@@ -48,6 +57,9 @@ class _BloomAppState extends ConsumerState<BloomApp> {
     super.initState();
     // Loads saved alarms and re-arms them.
     ref.read(alarmsProvider);
+    // After the first frame, so startup isn't slowed by it.
+    WidgetsBinding.instance.addPostFrameCallback((_) => CloverRive.preload());
+    PerfTour.run(_navigator, ref);
     try {
       _ringing = Alarm.ringing.listen((set) {
         for (final a in set.alarms) {
@@ -60,11 +72,14 @@ class _BloomAppState extends ConsumerState<BloomApp> {
   Future<void> _openRinging(int id) async {
     final nav = _navigator.currentState;
     if (nav == null) return;
-    await nav.push(PageRouteBuilder<void>(
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (_, _, _) => RingingScreen(alarmId: id),
-      transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
-    ));
+    await nav.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 500),
+        pageBuilder: (_, _, _) => RingingScreen(alarmId: id),
+        transitionsBuilder: (_, a, _, child) =>
+            FadeTransition(opacity: a, child: child),
+      ),
+    );
     _showing.remove(id);
   }
 
@@ -79,6 +94,7 @@ class _BloomAppState extends ConsumerState<BloomApp> {
     return MaterialApp(
       title: 'Bloom',
       navigatorKey: _navigator,
+      navigatorObservers: [PerfProbe.observer],
       debugShowCheckedModeBanner: false,
       theme: bloomTheme(),
       builder: (context, child) => FxLayer.wrap(child!),

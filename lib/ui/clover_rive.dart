@@ -7,6 +7,13 @@ import 'package:rive/rive.dart' as rive;
 import '../data/exercises.dart';
 import '../data/journal.dart';
 import 'clover_mini.dart';
+import 'march_scene.dart';
+
+/// Which Rive renderer draws Clover and her scenes. Flutter's canvas measured
+/// about 5x cheaper per frame than Rive's own renderer on a Xiaomi 13 (UI
+/// 1 ms vs 5.5 ms, raster 1.8 ms vs 7 ms) with identical output, so it's the
+/// default. `--dart-define=RIVE_FACTORY=rive` switches back for comparison.
+final rive.Factory riveFactory = const String.fromEnvironment('RIVE_FACTORY', defaultValue: 'flutter') == 'rive' ? rive.Factory.rive : rive.Factory.flutter;
 
 /// What Clover is doing. The values match the `action` input of `CloverSM`.
 enum CloverAction {
@@ -57,9 +64,16 @@ class CloverRive extends StatefulWidget {
     }
   }
 
+  /// Decodes the Rive files ahead of time so opening a Clover screen doesn't stall.
+  static void preload() {
+    if (!_nativeReady) return;
+    _load();
+    MarchSceneView.preload();
+  }
+
   static Future<rive.File?> _load() => _file ??= rive.File.asset(
         'assets/rive/clover.riv',
-        riveFactory: rive.Factory.rive,
+        riveFactory: riveFactory,
       );
 
   @override
