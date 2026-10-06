@@ -26,6 +26,8 @@ class TodayState {
     required this.bonusPaid,
     this.owned = const [],
     this.forced,
+    this.limits = const {},
+    this.gentle = false,
     this.loaded = false,
   });
 
@@ -47,14 +49,18 @@ class TodayState {
   /// A move chosen outside her picks (e.g. "Try it with Clover" after buying
   /// gear); used once, then cleared.
   final String? forced;
+
+  /// From onboarding: areas to go easy on, and whether to favour lighter moves.
+  final Set<String> limits;
+  final bool gentle;
   final bool loaded;
 
-  List<Exercise> get picks => picksFor(day, owned: owned.toSet());
+  List<Exercise> get picks => picksFor(day, owned: owned.toSet(), limits: limits, gentle: gentle);
   Exercise get current => (forced == null ? null : exerciseById(forced!)) ?? picks[pick % picks.length];
   bool owns(String id) => owned.contains(id);
   bool get goalMet => done >= kDailyGoal;
 
-  TodayState copyWith({String? day, int? done, int? pick, int? paws, bool? bonusPaid, List<String>? owned, String? forced, bool clearForced = false, bool? loaded}) => TodayState(
+  TodayState copyWith({String? day, int? done, int? pick, int? paws, bool? bonusPaid, List<String>? owned, String? forced, bool clearForced = false, Set<String>? limits, bool? gentle, bool? loaded}) => TodayState(
         day: day ?? this.day,
         done: done ?? this.done,
         pick: pick ?? this.pick,
@@ -62,10 +68,12 @@ class TodayState {
         bonusPaid: bonusPaid ?? this.bonusPaid,
         owned: owned ?? this.owned,
         forced: clearForced ? null : (forced ?? this.forced),
+        limits: limits ?? this.limits,
+        gentle: gentle ?? this.gentle,
         loaded: loaded ?? this.loaded,
       );
 
-  Map<String, Object?> toJson() => {'day': day, 'done': done, 'pick': pick, 'paws': paws, 'bonus': bonusPaid, 'owned': owned};
+  Map<String, Object?> toJson() => {'day': day, 'done': done, 'pick': pick, 'paws': paws, 'bonus': bonusPaid, 'owned': owned, 'limits': limits.toList(), 'gentle': gentle};
 }
 
 /// What finishing a move earned, so the UI can celebrate each part.
@@ -98,6 +106,8 @@ class TodayNotifier extends Notifier<TodayState> {
     final j = jsonDecode(raw) as Map<String, Object?>;
     final paws = (j['paws'] as num?)?.toInt() ?? 0;
     final owned = (j['owned'] as List?)?.cast<String>() ?? const <String>[];
+    final limits = ((j['limits'] as List?) ?? const []).cast<String>().toSet();
+    final gentle = j['gentle'] == true;
     if (j['day'] == today) {
       state = TodayState(
         day: today,
@@ -106,11 +116,13 @@ class TodayNotifier extends Notifier<TodayState> {
         paws: paws,
         bonusPaid: j['bonus'] == true,
         owned: owned,
+        limits: limits,
+        gentle: gentle,
         loaded: true,
       );
     } else {
       // A new day: the ring empties, the balance stays.
-      state = TodayState(day: today, done: 0, pick: 0, paws: paws, bonusPaid: false, owned: owned, loaded: true);
+      state = TodayState(day: today, done: 0, pick: 0, paws: paws, bonusPaid: false, owned: owned, limits: limits, gentle: gentle, loaded: true);
       _save();
     }
   }
@@ -153,6 +165,12 @@ class TodayNotifier extends Notifier<TodayState> {
 
   /// Puts [ex] up next, e.g. right after unlocking it.
   void pickExercise(Exercise ex) => state = state.copyWith(forced: ex.id);
+
+  /// Onboarding answers that shape her picks.
+  void setPreferences({required Set<String> limits, required bool gentle}) {
+    state = state.copyWith(limits: limits, gentle: gentle, pick: 0, clearForced: true);
+    _save();
+  }
 
   void addPaws(int n) {
     state = state.copyWith(paws: (state.paws + n).clamp(0, 1 << 30));

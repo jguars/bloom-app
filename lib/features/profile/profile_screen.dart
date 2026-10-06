@@ -1,17 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/plan.dart';
+import '../../data/premium.dart';
 import '../../data/profile.dart';
 import '../../data/weight.dart';
 import '../../ui/bits.dart';
 import '../../ui/ledge_button.dart';
-import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
+import '../../app/reminders.dart';
+import '../onboarding/onboarding_flow.dart' show pickTime;
+import '../paywall/paywall_screen.dart';
 import '../today/flow.dart';
 import 'plan_report_screen.dart';
 import 'week_stats.dart';
@@ -36,6 +39,12 @@ class ProfileScreen extends ConsumerWidget {
     final hour = DateTime.now().hour;
     final line = hour >= 20 || hour < 5 ? 'Story time, then sleep.' : (hour < 11 ? 'Five more minutes…' : 'My comfy corner!');
     final update = ref.read(profileProvider.notifier).update;
+    final premium = ref.watch(premiumProvider);
+    Future<void> reminder(bool morning, bool on) async {
+      if (on && !await Reminders.requestPermission()) return;
+      final p = ref.read(profileProvider);
+      update(morning ? p.copyWith(morning: on) : p.copyWith(evening: on));
+    }
 
     return RoomFrame(
       asset: 'assets/scenes/bedroom.jpg',
@@ -87,6 +96,18 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 10),
         GroupCard(children: [
           GroupRow(
+            title: 'Morning reminder',
+            caption: profile.morning ? '${clockText(profile.morningAt)} · tap to change' : 'A look at today’s plan',
+            onTap: profile.morning ? () => pickTime(context, profile.morningAt, (m) => update(ref.read(profileProvider).copyWith(morningAt: m))) : null,
+            trailing: BloomToggle(label: 'Morning reminder', value: profile.morning, onChanged: (v) => reminder(true, v)),
+          ),
+          GroupRow(
+            title: 'Evening reminder',
+            caption: profile.evening ? '${clockText(profile.eveningAt)} · tap to change' : 'How did today go?',
+            onTap: profile.evening ? () => pickTime(context, profile.eveningAt, (m) => update(ref.read(profileProvider).copyWith(eveningAt: m))) : null,
+            trailing: BloomToggle(label: 'Evening reminder', value: profile.evening, onChanged: (v) => reminder(false, v)),
+          ),
+          GroupRow(
             title: 'Sounds',
             caption: 'Pops, ticks and cheers',
             trailing: BloomToggle(label: 'Sounds', value: profile.sound, onChanged: (v) => update(profile.copyWith(sound: v))),
@@ -104,21 +125,42 @@ class ProfileScreen extends ConsumerWidget {
               child: SegmentedSwitch(labels: const ['kg', 'lb'], index: profile.pounds ? 1 : 0, onChanged: (i) => update(profile.copyWith(pounds: i == 1))),
             ),
           ),
-          const GroupRow(title: 'Account', caption: 'Guest · everything stays on this phone', last: true),
+          GroupRow(title: 'Account', caption: 'Guest · everything stays on this phone', last: !kDebugMode),
+          if (kDebugMode)
+            GroupRow(
+              title: 'Replay welcome',
+              caption: 'Debug only · runs onboarding again',
+              onTap: () {
+                ref.read(premiumProvider.notifier).reset();
+                update(ref.read(profileProvider).copyWith(onboarded: false));
+              },
+              last: true,
+            ),
         ]),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: BloomColors.forestSoft, borderRadius: BorderRadius.circular(BloomSpace.rLg)),
+          decoration: BoxDecoration(color: premium.active ? BloomColors.mustardSoft : BloomColors.forestSoft, borderRadius: BorderRadius.circular(BloomSpace.rLg)),
           child: Row(children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Bloom Plus', style: BloomText.headline.copyWith(color: BloomColors.forest)),
-                Text('All 40 moves and new outfits for ${profile.catName}.', style: BloomText.body.copyWith(fontSize: 14, height: 20 / 14)),
+                Text(premium.active ? 'You’re on Bloom Plus' : 'Bloom Plus', style: BloomText.headline.copyWith(color: premium.active ? BloomColors.ink : BloomColors.forest)),
+                Text(
+                  premium.active
+                      ? [premium.plan?.label ?? 'Plus', if (premium.trialEnds != null) 'free until ${shortDate(premium.trialEnds!)}', if (premium.test) 'test purchase'].join(' · ')
+                      : 'All 40 moves and new outfits for ${profile.catName}.',
+                  style: BloomText.body.copyWith(fontSize: 14, height: 20 / 14),
+                ),
               ]),
             ),
-            const SizedBox(width: 12),
-            LedgeButton(label: 'Try 7 days', expand: false, onPressed: () => showBloomSheet<void>(context, (c) => const _PlusSoonSheet())),
+            if (!premium.active) ...[
+              const SizedBox(width: 12),
+              LedgeButton(
+                label: 'Try 7 days',
+                expand: false,
+                onPressed: () => Navigator.of(context).push(bloomRoute(Builder(builder: (c) => Scaffold(body: PaywallScreen(onDone: () => Navigator.of(c).pop()))))),
+              ),
+            ],
           ]),
         ),
       ],
@@ -199,30 +241,4 @@ class _Field extends StatelessWidget {
           ),
         ),
       ]);
-}
-
-/// Bloom Plus isn't on sale yet; say so plainly instead of a fake checkout.
-class _PlusSoonSheet extends StatelessWidget {
-  const _PlusSoonSheet();
-  @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(BloomSpace.rLg),
-          child: Image.asset('assets/scenes/gift.jpg', height: 180, fit: BoxFit.cover, alignment: const Alignment(0, .3)),
-        ),
-        const SizedBox(height: 16),
-        Text('Bloom Plus is on its way', style: BloomText.title),
-        const SizedBox(height: 6),
-        for (final p in const ['All 40 moves, with every piece of gear', 'Weekly summary and plan report', 'New outfits and room decor'])
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Row(children: [
-              const Icon(Icons.check_circle_rounded, color: BloomColors.forest, size: 20),
-              const SizedBox(width: 8),
-              Expanded(child: Text(p, style: BloomText.body)),
-            ]),
-          ),
-        const SizedBox(height: 20),
-        LedgeButton(label: 'Got it', variant: LedgeVariant.secondary, onPressed: () => Navigator.of(context).pop()),
-      ].map((w) => w is SizedBox ? w : RiseIn(delay: BloomMotion.stagger, child: w)).toList());
 }

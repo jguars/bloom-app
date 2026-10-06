@@ -114,10 +114,15 @@ const dailyExercises = <Exercise>[
 /// Today's picks: gear moves the user owns come first (they pay more), then
 /// the bodyweight basics, up to ten, in a stable order for the day so swapping
 /// feels like browsing her list, not a dice roll.
-List<Exercise> picksFor(String day, {Set<String> owned = const {}, Set<String> limits = const {}}) {
+List<Exercise> picksFor(String day, {Set<String> owned = const {}, Set<String> limits = const {}, bool gentle = false}) {
   final gear = gearExercises.where((e) => owned.contains(e.equipment)).toList();
   final safe = [...gear, ...dailyExercises].where((e) => e.strains.intersection(limits).isEmpty).toList();
-  final list = safe.length >= 3 ? safe : [...gear, ...dailyExercises];
+  var list = safe.length >= 3 ? safe : [...gear, ...dailyExercises];
+  // Mostly sitting: start with the lighter bodyweight moves.
+  if (gentle) {
+    final light = list.where((e) => e.equipment != null || e.effort <= 1.5).toList();
+    if (light.where((e) => e.equipment == null).length >= 3) list = light;
+  }
   final seed = day.codeUnits.fold<int>(7, (a, c) => (a * 31 + c) & 0x7fffffff);
   final basics = list.where((e) => e.equipment == null).toList();
   final shift = basics.isEmpty ? 0 : seed % basics.length;

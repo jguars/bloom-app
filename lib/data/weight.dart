@@ -117,6 +117,11 @@ class WeightNotifier extends Notifier<WeightLog> {
     _save();
   }
 
+  void setPace(double kgPerWeek) {
+    state = state.copyWith(kgPerWeek: kgPerWeek);
+    _save();
+  }
+
   void setGoal(double kg) {
     state = state.copyWith(goalKg: double.parse(kg.toStringAsFixed(2)));
     _save();
