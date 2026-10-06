@@ -10,6 +10,7 @@ import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../today/flow.dart';
+import '../food/food_check_screen.dart';
 import '../urge/urge_screen.dart';
 import 'rule_sheet.dart';
 
@@ -50,6 +51,14 @@ class PlanScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).push(bloomRoute(const UrgeScreen())),
             icon: const Icon(Icons.waves_rounded, size: 18, color: BloomColors.skyDeep),
             label: Text('Craving one of these? Ride it out with Clover', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.skyDeep)),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => Navigator.of(context).push(bloomRoute(const FoodCheckScreen())),
+            icon: const Icon(Icons.photo_camera_outlined, size: 18, color: BloomColors.skyDeep),
+            label: Text('Is this on my plan? Check a photo', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.skyDeep)),
           ),
         ),
         const SizedBox(height: 18),

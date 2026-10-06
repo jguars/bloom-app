@@ -8,6 +8,7 @@ import 'package:bloom/data/journal.dart';
 import 'package:bloom/data/today.dart';
 import 'dart:convert';
 
+import 'package:bloom/features/food/food_check_screen.dart';
 import 'package:bloom/features/onboarding/onboarding_flow.dart';
 import 'package:bloom/features/paywall/paywall_screen.dart';
 import 'package:bloom/features/plan/plan_screen.dart';
@@ -237,4 +238,8 @@ void main() {
   testWidgets('today-dusk', (t) => _shot(t, 'today-dusk', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'all'), hour: 19));
   testWidgets('today-night', (t) => _shot(t, 'today-night', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'mostly'), hour: 23));
   testWidgets('today-dawn', (t) => _shot(t, 'today-dawn', const Shell(), assets: ['assets/scenes/living.jpg'], hour: 6));
+  testWidgets('food', (t) => _shot(t, 'food', const FoodCheckScreen()));
+  testWidgets('food-example', (t) => _shot(t, 'food-example', const FoodCheckScreen(), then: (t) async {
+        await t.tap(find.text('See an example'));
+      }));
 }
