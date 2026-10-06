@@ -45,6 +45,9 @@ class CloverRive extends StatefulWidget {
   static Future<rive.File?>? _file;
   static bool _nativeReady = false;
 
+  /// Whether Rive's native runtime loaded (false in widget tests).
+  static bool get nativeReady => _nativeReady;
+
   static Future<void> init() async {
     try {
       await rive.RiveNative.init();

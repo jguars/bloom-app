@@ -25,6 +25,7 @@ import 'package:bloom/features/today/celebration_screen.dart';
 import 'package:bloom/features/urge/urge_screen.dart';
 import 'package:bloom/features/today/ready_screen.dart';
 import 'package:bloom/features/today/session_screen.dart';
+import 'package:bloom/features/today/exercise_picker.dart';
 import 'package:bloom/ui/fx_layer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -117,6 +118,9 @@ void main() {
   const ex = Exercise(id: 'march', name: 'March in place', seconds: 120, effort: 1, cues: ['Knees up! Like this!']);
   testWidgets('today', (t) => _shot(t, 'today', const Shell(), assets: ['assets/scenes/living.jpg']));
   testWidgets('ready', (t) => _shot(t, 'ready', const ReadyScreen(ex: ex), assets: ['assets/scenes/ready-empty.jpg']));
+  testWidgets('exercise-picker', (t) => _shot(t, 'exercise-picker', Scaffold(body: Consumer(builder: (c, ref, _) => Center(child: TextButton(onPressed: () => showExercisePicker(c, ref), child: const Text('open'))))), then: (t) async {
+        await t.tap(find.text('open'));
+      }));
   testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
   testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
   testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg']));

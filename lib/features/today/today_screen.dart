@@ -24,6 +24,7 @@ import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
 import '../urge/urge_screen.dart';
 import 'check_in_sheet.dart';
+import 'exercise_picker.dart';
 import 'flow.dart';
 import 'ready_screen.dart';
 
@@ -172,7 +173,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                   ),
                 ),
                 child: s.goalMet
-                    ? _DoneCard(key: const ValueKey('done'), onMore: () => _open(s.current))
+                    ? _DoneCard(key: const ValueKey('done'), onMore: _pickMore)
                     : _PickCard(
                         key: ValueKey(s.current.id),
                         ex: s.current,
@@ -192,6 +193,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 
   void _open(Exercise ex) => Navigator.of(context).push(bloomRoute(ReadyScreen(ex: ex)));
+
+  /// After the day's three, any move can be picked from the full list.
+  Future<void> _pickMore() async {
+    final ex = await showExercisePicker(context, ref);
+    if (ex != null && mounted) _open(ex);
+  }
 
   /// Opens the check-in by itself, once per evening, when nothing else is
   /// happening on Today.
