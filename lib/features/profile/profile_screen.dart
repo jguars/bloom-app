@@ -18,6 +18,7 @@ import '../paywall/paywall_screen.dart';
 import '../today/flow.dart';
 import 'plan_report_screen.dart';
 import 'week_stats.dart';
+import '../alarm/alarms_screen.dart';
 import 'weekly_screen.dart';
 import 'widget_sheet.dart';
 import 'weight_history_screen.dart';
@@ -107,6 +108,11 @@ class ProfileScreen extends ConsumerWidget {
             caption: profile.evening ? '${clockText(profile.eveningAt)} · tap to change' : 'How did today go?',
             onTap: profile.evening ? () => pickTime(context, profile.eveningAt, (m) => update(ref.read(profileProvider).copyWith(eveningAt: m))) : null,
             trailing: BloomToggle(label: 'Evening reminder', value: profile.evening, onChanged: (v) => reminder(false, v)),
+          ),
+          GroupRow(
+            title: 'Wake-up alarms',
+            caption: 'Clover wakes you, then stretches with you',
+            onTap: () => Navigator.of(context).push(bloomRoute(const AlarmsScreen())),
           ),
           GroupRow(
             title: 'Home-screen widgets',

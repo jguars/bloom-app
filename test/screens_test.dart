@@ -8,6 +8,8 @@ import 'package:bloom/data/journal.dart';
 import 'package:bloom/data/today.dart';
 import 'dart:convert';
 
+import 'package:bloom/features/alarm/alarms_screen.dart';
+import 'package:bloom/features/alarm/ringing_screen.dart';
 import 'package:bloom/features/food/food_check_screen.dart';
 import 'package:bloom/features/onboarding/onboarding_flow.dart';
 import 'package:bloom/features/paywall/paywall_screen.dart';
@@ -244,4 +246,16 @@ void main() {
         await t.tap(find.text('See an example'));
       }));
   testWidgets('widget-sheet', (t) => _shot(t, 'widget-sheet', const Scaffold(body: Padding(padding: EdgeInsets.fromLTRB(20, 80, 20, 0), child: WidgetSheet())), assets: ['assets/widget/widget_clover_rest.png']));
+  final alarms = {'bloom.alarms.v1': jsonEncode([
+    {'id': 1, 'hour': 7, 'minute': 0, 'days': [1, 2, 3, 4, 5], 'label': 'Work days', 'tune': 'morningPurr', 'vibrate': true, 'gentle': true, 'enabled': true},
+    {'id': 2, 'hour': 9, 'minute': 30, 'days': [6, 7], 'label': '', 'tune': 'gardenBells', 'vibrate': true, 'gentle': true, 'enabled': false},
+  ])};
+  testWidgets('alarms', (t) => _shot(t, 'alarms', const AlarmsScreen(), prefs: alarms));
+  testWidgets('alarm-sheet', (t) => _shot(t, 'alarm-sheet', const AlarmsScreen(), prefs: alarms, then: (t) async {
+        await t.tap(find.text('07:00').last);
+        for (var i = 0; i < 8; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
+  testWidgets('ringing', (t) => _shot(t, 'ringing', const RingingScreen(alarmId: 1), prefs: alarms));
 }

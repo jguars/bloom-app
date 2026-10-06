@@ -118,10 +118,74 @@ SOUNDS = {
 
 PEAKS = {'tap': 0.32, 'whoosh': 0.22, 'swipe': 0.25, 'purr': 0.4, 'breathe_in': 0.28, 'breathe_out': 0.28, 'nope': 0.3}
 
-if __name__ == '__main__':
+def main():
     out = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
     out.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 2 and sys.argv[2] == 'alarms':
+        for name, make in ALARMS.items():
+            x = make()
+            write_alarm(out / f'{name}.wav', x)
+            print(f'{name:12s} {len(x) / SR:5.2f}s')
+        return
     for name, make in SOUNDS.items():
         x = make()
         write(out / f'{name}.wav', x, PEAKS.get(name, 0.5))
         print(f'{name:12s} {len(x) / SR:5.2f}s')
+
+
+# ---------------------------------------------------------------------------
+# Wake-up alarms: 16-second loops that start soft and fill out, rendered at
+# 22.05 kHz to keep the assets small. Run: make_sfx.py assets/sfx alarms
+# ---------------------------------------------------------------------------
+ASR = 22050
+
+
+def _loop(bars, beat=0.5, n_bars=8):
+    """bars: function(bar_index) -> list of (beat_offset, clip)."""
+    total = n_bars * 4 * beat
+    out = np.zeros(int(SR * total) + SR)
+    for b in range(n_bars):
+        for off, clip in bars(b):
+            out = place(out, clip * min(1.0, 0.35 + b * 0.12), b * 4 * beat + off * beat)
+    out = room(out[: int(SR * total)], size=0.3, wet=0.25)[: int(SR * total)]
+    # A short crossfade of the tail into the head so the loop has no seam.
+    xf = int(SR * 0.08)
+    out[:xf] = out[:xf] * np.linspace(0, 1, xf) + out[-xf:] * np.linspace(1, 0, xf)
+    return out[: len(out) - xf]
+
+
+MORNING = [C5, E5, G5, A5, G5, E5, D5, E5]
+
+
+def morning_purr():
+    purr = SOUNDS['purr']()
+    return _loop(lambda b: [(i * 0.5, tone(MORNING[(i + b) % 8] * (2 if b >= 4 and i % 2 else 1), 0.9, MARIMBA, decay=4) * 0.7) for i in range(8)]
+                 + ([(0, purr * 0.35)] if b % 2 == 0 else []))
+
+
+def garden_bells():
+    melody = [(0, G5), (1, E6), (2, D6), (3, C6)]
+    return _loop(lambda b: [(o, tone(f * (1 if b % 2 == 0 else 1.122), 1.6, BELL, decay=2.6)) for o, f in melody]
+                 + [(o + 0.5, tone(C5 / 2, 1.2, MARIMBA, decay=3) * 0.5) for o in (0, 2)], beat=0.55)
+
+
+def paw_patter():
+    def bar(b):
+        hits = [(i * 0.5, tone(1300 if i % 2 else 900, 0.08, WOOD, decay=55) * 0.6) for i in range(8)]
+        tune = [(0, tone(C6, 0.4, MARIMBA, decay=8)), (1, tone(E6, 0.4, MARIMBA, decay=8)), (1.5, tone(G6, 0.4, MARIMBA, decay=8)),
+                (2.5, tone(A6 if b % 2 else E6, 0.6, MARIMBA, decay=6)), (3.5, tone(G6, 0.3, MARIMBA, decay=9))]
+        return hits + (tune if b >= 1 else [])
+    return _loop(bar, beat=0.42)
+
+
+ALARMS = {'morning_purr': morning_purr, 'garden_bells': garden_bells, 'paw_patter': paw_patter}
+
+
+def write_alarm(path, x):
+    x = signal.resample_poly(x, 1, 2)
+    x = x / (np.max(np.abs(x)) + 1e-9) * 0.85
+    wavfile.write(path, ASR, (x * 32767).astype(np.int16))
+
+
+if __name__ == '__main__':
+    main()

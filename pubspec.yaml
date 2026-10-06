@@ -18,6 +18,8 @@ dependencies:
   rive: ^0.14.11
   image_picker: ^1.2.3
   home_widget: ^0.10.0
+  alarm: ^5.15.0
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
@@ -31,7 +33,12 @@ flutter:
     - assets/sfx/
     - assets/rive/
     - assets/widget/
+    - assets/alarm/
   fonts:
     - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito-Variable.ttf
+
+dependency_overrides:
+  # 13.0.2 needs compileSdk 37, which AGP 9.1 does not support yet.
+  permission_handler_android: 13.0.1
