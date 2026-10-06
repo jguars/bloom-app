@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'equipment.dart';
 import 'exercises.dart';
+import 'journal.dart';
 
 /// Bonus for doing all three moves in a day.
 const kDailyBonus = 15;
@@ -138,6 +139,7 @@ class TodayNotifier extends Notifier<TodayState> {
       clearForced: true,
     );
     _save();
+    ref.read(journalProvider.notifier).logMove(ex);
     return Reward(paws: ex.paws, bonus: bonus, doneNow: doneNow);
   }
 

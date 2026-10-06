@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../app/feel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/sfx.dart';
@@ -73,7 +73,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
   }
 
   Future<void> _confirm(Equipment item) async {
-    HapticFeedback.selectionClick();
+    Feel.selectionClick();
     final bought = await showBloomSheet<bool>(context, (context) => _BuySheet(item: item));
     if (bought != true || !mounted) return;
     SfxPlayer.instance.play(Sfx.cheer);

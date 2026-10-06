@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../app/feel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
@@ -128,7 +128,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
   void _toggle() {
     final on = ref.read(planProvider.notifier).toggle(widget.rule.id);
     if (on) {
-      HapticFeedback.lightImpact();
+      Feel.lightImpact();
       final box = _checkKey.currentContext?.findRenderObject() as RenderBox?;
       if (box != null) {
         final c = box.localToGlobal(box.size.center(Offset.zero));
@@ -136,7 +136,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
         FxLayer.burst(c, count: 14, power: .45);
       }
     } else {
-      HapticFeedback.selectionClick();
+      Feel.selectionClick();
     }
   }
 

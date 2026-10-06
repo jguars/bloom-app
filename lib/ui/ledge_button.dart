@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../app/feel.dart';
 
 import '../app/motion.dart';
 import '../app/theme.dart';
@@ -83,7 +83,7 @@ class _LedgeButtonState extends State<LedgeButton> with TickerProviderStateMixin
         onTapUp: _enabled
             ? (_) {
                 _press.reverse();
-                HapticFeedback.lightImpact();
+                Feel.lightImpact();
                 widget.onPressed!();
               }
             : null,

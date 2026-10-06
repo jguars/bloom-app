@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'journal.dart';
 import 'today.dart';
 
 /// Which list a rule belongs to.
@@ -127,6 +128,7 @@ class PlanNotifier extends Notifier<Plan> {
   }
 
   Future<void> _save() async {
+    ref.read(journalProvider.notifier).logPlan(state.rules.where((r) => state.isKept(r.id)).map((r) => r.id).toList(), state.rules.length);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(state.toJson()));
   }

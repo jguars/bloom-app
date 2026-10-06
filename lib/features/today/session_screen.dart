@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../app/feel.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
@@ -43,13 +43,13 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
       if (!mounted) return;
       setState(() => _count = i);
       SfxPlayer.instance.play(Sfx.tick);
-      HapticFeedback.selectionClick();
+      Feel.selectionClick();
       await Future<void>.delayed(const Duration(milliseconds: 800));
     }
     if (!mounted) return;
     setState(() => _count = 0);
     SfxPlayer.instance.play(Sfx.go);
-    HapticFeedback.mediumImpact();
+    Feel.mediumImpact();
     _ticker.start();
   }
 
@@ -66,7 +66,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
     _finished = true;
     _ticker.stop();
     SfxPlayer.instance.play(Sfx.done);
-    HapticFeedback.heavyImpact();
+    Feel.heavyImpact();
     final reward = ref.read(todayProvider.notifier).finish();
     Navigator.of(context).pushReplacement(bloomRoute(CelebrationScreen(ex: widget.ex, reward: reward)));
   }
