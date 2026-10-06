@@ -5,12 +5,11 @@ import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
 import '../../data/today.dart';
-import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
-import '../../ui/scene.dart';
 import 'flow.dart';
 
 /// The payoff: Clover leaps in the living room, confetti bursts three times,
@@ -32,8 +31,9 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
       SfxPlayer.instance.play(Sfx.cheer);
       if (widget.reward.flag != null) Future<void>.delayed(const Duration(milliseconds: 900), () => SfxPlayer.instance.play(Sfx.flag));
       final size = MediaQuery.of(context).size;
-      for (final (dx, dy, ms, n) in [(.5, .32, 0, 80), (.22, .26, 380, 40), (.78, .28, 700, 40)]) {
-        await Future<void>.delayed(Duration(milliseconds: ms == 0 ? 200 : 320));
+      // The first burst lands at the top of her leap (about 0.45 s into CheerIntro), the next two follow it.
+      for (final (dx, dy, wait, n) in [(.5, .26, 450, 80), (.22, .22, 320, 40), (.78, .24, 320, 40)]) {
+        await Future<void>.delayed(Duration(milliseconds: wait));
         if (!mounted) return;
         FxLayer.burst(Offset(size.width * dx, size.height * dy), count: n);
       }
@@ -47,7 +47,8 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/celebrate-empty.jpg', height: sceneH, fadeHeight: 80, groundAt: .84, characterSize: .6, character: const LiveClover(action: CloverAction.cheer))),
+        // The back garden at golden hour; she starts her leap as soon as the scene is up.
+        Positioned(left: 0, right: 0, top: 0, child: CloverSceneView(scene: CloverScene.cheer, height: sceneH, cheering: true, fadeHeight: 80)),
         Positioned.fill(
           top: sceneH - 20,
           child: Padding(

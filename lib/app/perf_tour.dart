@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/exercises.dart';
+import '../data/today.dart';
+import '../features/today/celebration_screen.dart';
 import '../features/today/ready_screen.dart';
 import '../features/today/session_screen.dart';
 import '../features/urge/urge_screen.dart';
@@ -39,6 +41,7 @@ class PerfTour {
     await visit('session-march', SessionScreen(ex: march), 12);
     await visit('session-squat', SessionScreen(ex: squats), 10);
     await visit('urge', const UrgeScreen(), 8);
+    await visit('celebration', CelebrationScreen(ex: march, reward: const Reward(paws: 10, bonus: 0, doneNow: 2)), 8);
     debugPrint('[perf] tour: done');
   }
 }

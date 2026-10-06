@@ -4,7 +4,6 @@ import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../ui/bits.dart';
-import '../../ui/clover_mini.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/weight_chart.dart';
 
@@ -195,12 +194,17 @@ class _FlagRow extends StatelessWidget {
         border: isNext ? Border.all(color: BloomColors.mustard, width: 2) : null,
       ),
       child: Row(children: [
-        Container(
-          width: 64,
-          height: 64,
-          alignment: Alignment.bottomCenter,
-          decoration: BoxDecoration(color: reached ? BloomColors.forestSoft : BloomColors.paperSunk, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-          child: CloverMini(bodyMass: m.bodyMass, size: 54, dim: !reached && !isNext),
+        // Her portrait for this milestone (the same one that hangs in the hallway once it's reached);
+        // flags beyond the next one are faded and grey, still to come.
+        ClipRRect(
+          borderRadius: BorderRadius.circular(BloomSpace.rSm),
+          child: Opacity(
+            opacity: !reached && !isNext ? .5 : 1,
+            child: ColorFiltered(
+              colorFilter: !reached && !isNext ? const ColorFilter.mode(Color(0xFFB8B0A0), BlendMode.saturation) : const ColorFilter.mode(Color(0x00000000), BlendMode.dst),
+              child: Image.asset('assets/scenes/portrait-${milestones.indexOf(m) + 1}.webp', width: 64, height: 77, fit: BoxFit.cover),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(

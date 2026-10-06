@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
 import '../../app/sfx.dart';
+import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/plan.dart';
+import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
@@ -32,6 +35,9 @@ class PlanScreen extends ConsumerWidget {
                 : '$kept down, ${total - kept} to go!';
     return RoomFrame(
       asset: 'assets/scenes/balcony.jpg',
+      scene: CloverScene.plan,
+      action: CloverAction.balconyWater,
+      room: Room.plan,
       line: line,
       title: 'Plan',
       subtitle: AnimatedSwitcher(

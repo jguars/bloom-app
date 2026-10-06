@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'perf_probe.dart';
 
 import 'package:flutter/material.dart';
@@ -66,8 +68,9 @@ class Shell extends ConsumerWidget {
   };
 }
 
-/// Floating pill tab bar. The active tab gets a forest-soft pill that slides
-/// between tabs; icons pop on selection.
+/// Floating pill tab bar in liquid glass: the room behind is blurred and saturated through a smoky
+/// forest tint, with a bright rim and a top sheen. The open room's frosted pill flows between tabs,
+/// stretching as it travels; icons pop on selection.
 class BloomTabBar extends ConsumerWidget {
   const BloomTabBar({super.key});
 
@@ -79,103 +82,181 @@ class BloomTabBar extends ConsumerWidget {
     (Room.profile, Icons.person_outline_rounded, 'Profile'),
   ];
 
+  // Saturates what shows through, like light bending in thick glass.
+  static final _glass = ImageFilter.compose(
+    outer: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+    inner: const ColorFilter.matrix([
+      1.36, -.32, -.04, 0, 0, //
+      -.08, 1.24, -.04, 0, 0,
+      -.08, -.32, 1.48, 0, 0,
+      0, 0, 0, 1, 0,
+    ]),
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final room = ref.watch(roomProvider);
     final index = _items.indexWhere((i) => i.$1 == room);
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.all(6),
+    final radius = BorderRadius.circular(BloomSpace.rPill);
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: BloomColors.surface,
-        borderRadius: BorderRadius.circular(BloomSpace.rPill),
+        borderRadius: radius,
         boxShadow: const [
-          BoxShadow(
-            color: Color(0x292E3826),
-            blurRadius: 32,
-            offset: Offset(0, 12),
-          ),
+          BoxShadow(color: Color(0x472E3826), blurRadius: 28, offset: Offset(0, 14)),
+          BoxShadow(color: Color(0x1F2E3826), blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth / _items.length;
-          return Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 380),
-                curve: BloomMotion.spring,
-                left: index * w,
-                top: 0,
-                bottom: 0,
-                width: w,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: BloomColors.forestSoft,
-                    borderRadius: BorderRadius.circular(BloomSpace.rPill),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  for (final (r, icon, label) in _items)
-                    Expanded(
-                      child: Semantics(
-                        selected: r == room,
-                        button: true,
-                        label: label,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            if (r != room) {
-                              Feel.selectionClick();
-                              SfxPlayer.instance.play(Sfx.tap, volume: .5);
-                            }
-                            PerfProbe.tab(r.name);
-                            ref.read(roomProvider.notifier).go(r);
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: _glass,
+          child: CustomPaint(
+            painter: const _GlassPainter(),
+            foregroundPainter: const _GlassRim(),
+            child: SizedBox(
+              height: 66,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    final w = c.maxWidth / _items.length;
+                    return Stack(
+                      children: [
+                        // The pill glides to the new tab and stretches like a drop on the way.
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(end: index.toDouble()),
+                          duration: const Duration(milliseconds: 460),
+                          curve: BloomMotion.spring,
+                          builder: (context, pos, _) {
+                            final stretch = (index - pos).abs().clamp(0.0, 1.0) * w * .45;
+                            return Positioned(
+                              left: pos * w - stretch / 2,
+                              top: 0,
+                              bottom: 0,
+                              width: w + stretch,
+                              child: const _GlassPill(),
+                            );
                           },
-                          child: TweenAnimationBuilder<double>(
-                            key: ValueKey('$r-${r == room}'),
-                            tween: Tween(begin: r == room ? .7 : 1, end: 1),
-                            duration: const Duration(milliseconds: 420),
-                            curve: BloomMotion.pop,
-                            builder: (context, s, child) =>
-                                Transform.scale(scale: s, child: child),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  icon,
-                                  size: 24,
-                                  color: r == room
-                                      ? BloomColors.forest
-                                      : BloomColors.inkMuted,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  label,
-                                  style: BloomText.label.copyWith(
-                                    fontSize: 11,
-                                    letterSpacing: .4,
-                                    color: r == room
-                                        ? BloomColors.forest
-                                        : BloomColors.inkMuted,
+                        ),
+                        Row(
+                          children: [
+                            for (final (r, icon, label) in _items)
+                              Expanded(
+                                child: Semantics(
+                                  selected: r == room,
+                                  button: true,
+                                  label: label,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      if (r != room) {
+                                        Feel.selectionClick();
+                                        SfxPlayer.instance.play(Sfx.tap, volume: .5);
+                                      }
+                                      PerfProbe.tab(r.name);
+                                      ref.read(roomProvider.notifier).go(r);
+                                    },
+                                    child: TweenAnimationBuilder<double>(
+                                      key: ValueKey('$r-${r == room}'),
+                                      tween: Tween(begin: r == room ? .7 : 1, end: 1),
+                                      duration: const Duration(milliseconds: 420),
+                                      curve: BloomMotion.pop,
+                                      builder: (context, s, child) => Transform.scale(scale: s, child: child),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(icon, size: 24, color: r == room ? BloomColors.onGlass : BloomColors.onGlassMuted),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            label,
+                                            style: BloomText.label.copyWith(
+                                              fontSize: 11,
+                                              letterSpacing: .4,
+                                              color: r == room ? BloomColors.onGlass : BloomColors.onGlassMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                          ],
                         ),
-                      ),
-                    ),
-                ],
+                      ],
+                    );
+                  },
+                ),
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ),
       ),
     );
   }
+}
+
+/// The glass body: the forest tint, deeper at the bottom, with a soft sheen across the top half
+/// and a faint caustic glow along the bottom edge.
+class _GlassPainter extends CustomPainter {
+  const _GlassPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Offset.zero & size;
+    final rr = RRect.fromRectAndRadius(r, Radius.circular(size.height / 2));
+    canvas.drawRRect(rr, Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [BloomColors.glassTop, BloomColors.glassBottom]).createShader(r));
+    final top = Rect.fromLTWH(0, 0, size.width, size.height * .5);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(top, topLeft: Radius.circular(size.height / 2), topRight: Radius.circular(size.height / 2)),
+      Paint()..shader = const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x40FFFFFF), Color(0x00FFFFFF)]).createShader(top),
+    );
+    final glow = Rect.fromLTWH(size.width * .12, size.height * .72, size.width * .76, size.height * .28);
+    canvas.drawOval(glow, Paint()..color = const Color(0x1AFFF6D8)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+  }
+
+  @override
+  bool shouldRepaint(_GlassPainter old) => false;
+}
+
+/// The bright rim light catches the top-left edge and, more faintly, the bottom-right.
+class _GlassRim extends CustomPainter {
+  const _GlassRim();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = (Offset.zero & size).deflate(.75);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(r, Radius.circular(size.height / 2)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xB3FFFFFF), Color(0x26FFFFFF), Color(0x14FFFFFF), Color(0x66FFFFFF)],
+          stops: [0, .35, .65, 1],
+        ).createShader(r),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassRim old) => false;
+}
+
+/// The open room's pill: frosted, lighter glass with its own highlight.
+class _GlassPill extends StatelessWidget {
+  const _GlassPill();
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(BloomSpace.rPill),
+          gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x47FFFBF3), BloomColors.glassPill]),
+          border: Border.all(color: const Color(0x59FFFFFF), width: 1),
+          boxShadow: const [BoxShadow(color: Color(0x261A2414), blurRadius: 8, offset: Offset(0, 2))],
+        ),
+      );
 }
 
 /// Opening the app from a reminder goes to the right room: the morning one to

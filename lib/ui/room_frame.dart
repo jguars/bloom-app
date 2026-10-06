@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/feel.dart';
 import '../app/sfx.dart';
 import '../app/theme.dart';
 import '../data/today.dart';
+import '../app/shell.dart';
+import 'clover_rive.dart';
+import 'clover_scene.dart';
 import 'paw.dart';
+import 'room_visit.dart';
 import 'scene.dart';
 import 'speech_bubble.dart';
 
 /// Layout shared by the rooms: the room's scene on top fading into a
 /// scrolling panel, Clover's line on the scene, and (Shop only) the paws chip.
-class RoomFrame extends ConsumerWidget {
+/// With a [scene], the room is a taller live Rive scene the roaming Clover visits
+/// (empty at first, she walks in and plays [action]); her line pops in over her
+/// head once she's there.
+class RoomFrame extends ConsumerStatefulWidget {
   const RoomFrame({
     super.key,
     required this.asset,
@@ -22,6 +30,11 @@ class RoomFrame extends ConsumerWidget {
     this.bubbleTop = 18,
     this.bubbleLeft = 16,
     this.pawsKey,
+    this.scene,
+    this.action,
+    this.room,
+    this.head,
+    this.sceneOverlay,
   });
 
   final String asset, line, title;
@@ -30,16 +43,45 @@ class RoomFrame extends ConsumerWidget {
   final bool showPaws;
   final double bubbleTop, bubbleLeft;
   final Key? pawsKey;
+  final CloverScene? scene;
+  final CloverAction? action;
+
+  /// The tab this room is (with [scene]: each opening is a new visit).
+  final Room? room;
+
+  /// Where her head is when her spot varies (artboard units); defaults to the scene's.
+  final Offset? head;
+
+  /// Painted over the scene's art (e.g. the hallway's portraits), sized to the scene.
+  final Widget? sceneOverlay;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RoomFrame> createState() => _RoomFrameState();
+}
+
+class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
+  @override
+  Room get visitRoom => widget.room!;
+
+  @override
+  Widget build(BuildContext context) {
+    final RoomFrame(:asset, :line, :title, :subtitle, :children, :showPaws, :bubbleTop, :bubbleLeft, :pawsKey, :scene) = widget;
     final mq = MediaQuery.of(context);
-    final sceneH = 300.0 + mq.padding.top * .5;
+    if (scene != null) watchVisits();
+    final sceneH = scene != null ? (mq.size.height * .47).clamp(340.0, 470.0) : 300.0 + mq.padding.top * .5;
+    final head = scene?.headIn(Size(mq.size.width, sceneH), widget.head);
     final paws = ref.watch(todayProvider.select((s) => s.paws));
     return ColoredBox(
       color: BloomColors.surface,
       child: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: asset, height: sceneH, fadeHeight: 62)),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: scene != null
+              ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, fadeHeight: 72)
+              : Scene(asset: asset, height: sceneH, fadeHeight: 62),
+        ),
         CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
@@ -49,7 +91,15 @@ class RoomFrame extends ConsumerWidget {
               child: SizedBox(
                 height: sceneH - 70,
                 child: Stack(clipBehavior: Clip.none, children: [
-                  Positioned(left: bubbleLeft, top: mq.padding.top + bubbleTop, child: IgnorePointer(child: SpeechBubble(text: line))),
+                  if (head != null)
+                    // Tail tip just left of the top of her head.
+                    Positioned(
+                      right: mq.size.width - head.dx - 5,
+                      bottom: sceneH - 70 - head.dy + 6,
+                      child: IgnorePointer(child: ArrivedPop(shown: arrived, alignment: Alignment.bottomRight, child: SpeechBubble(text: line, tailRight: true))),
+                    )
+                  else
+                    Positioned(left: bubbleLeft, top: mq.padding.top + bubbleTop, child: IgnorePointer(child: SpeechBubble(text: line))),
                 ]),
               ),
             ),
@@ -171,3 +221,36 @@ Future<T?> showBloomSheet<T>(BuildContext context, WidgetBuilder builder) {
     ),
   );
 }
+
+/// Sub-panels you can also flip with a swipe: left for the next one, right for the previous
+/// (the same [index]/[onChanged] as the [SegmentedSwitch] above them).
+class SwipePanels extends StatelessWidget {
+  const SwipePanels({super.key, required this.index, required this.count, required this.onChanged, required this.child});
+  final int index, count;
+  final ValueChanged<int> onChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (d) {
+          final v = d.primaryVelocity ?? 0;
+          final to = v < -200 ? index + 1 : v > 200 ? index - 1 : index;
+          if (to != index && to >= 0 && to < count) {
+            Feel.selectionClick();
+            onChanged(to);
+          }
+        },
+        child: child,
+      );
+}
+
+/// The slide for two swiped panels (keyed `ValueKey(0)` and `ValueKey(1)`): the first lives on the
+/// left and the second on the right, so each comes in from, and leaves towards, its own side.
+Widget panelTransition(Widget c, Animation<double> a) => FadeTransition(
+      opacity: a,
+      child: SlideTransition(
+        position: Tween(begin: Offset((c.key as ValueKey<int>).value == 0 ? -.1 : .1, 0), end: Offset.zero).animate(a),
+        child: c,
+      ),
+    );

@@ -27,6 +27,14 @@ abstract final class BloomColors {
   static const coral = Color(0xFFEE7B67);
   static const blush = Color(0xFFE3B5A4);
 
+  /// The floating tab bar's liquid glass: a smoky forest tint (so it reads against the cream panels),
+  /// a frosted pill for the open room, and cream icons.
+  static const glassTop = Color(0xA6577447);
+  static const glassBottom = Color(0xC72F4426);
+  static const glassPill = Color(0x33FFFBF3);
+  static const onGlass = Color(0xFFFFFBF3);
+  static const onGlassMuted = Color(0xB8E9EFDD);
+
   /// Confetti in Clover's colours.
   static const confetti = [mustard, sage, coral, sageDeep, surface, blush];
 }

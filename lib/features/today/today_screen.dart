@@ -14,13 +14,14 @@ import '../../data/exercises.dart';
 import '../../data/journal.dart';
 import '../../data/today.dart';
 import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/room_light.dart';
+import '../../ui/room_visit.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
-import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
 import '../urge/urge_screen.dart';
 import 'check_in_sheet.dart';
@@ -42,7 +43,7 @@ class TodayScreen extends ConsumerStatefulWidget {
   ConsumerState<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends ConsumerState<TodayScreen> {
+class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
   static const _offeredKey = 'bloom.checkin.offered';
   final _chipKey = GlobalKey();
 
@@ -54,7 +55,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   bool _tickled = false;
   int _tickles = 0;
 
+  /// Her mood when the scene last started: a new one restarts her arrival.
+  String? _mood;
+
+  @override
+  Room get visitRoom => Room.today;
+
   void _tickle(Offset at) {
+    if (!arrived) return;
     SfxPlayer.instance.play(Sfx.purr, volume: .8);
     Feel.lightImpact();
     FxLayer.burst(at, count: 10, power: .35);
@@ -87,10 +95,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       if (r != null) _playReward(r);
     });
     ref.listen(checkInRequestProvider, (_, _) => _openCheckIn());
+    watchVisits();
     final clockNow = ref.watch(clockProvider)();
     final evening = clockNow.hour >= kEveningHour;
     final checkIn = ref.watch(journalProvider.select((j) => j.todayLog.checkIn));
     final visible = ref.watch(roomProvider) == Room.today;
+    final mood = missed ? 'sad' : s.goalMet ? 'proud' : 'think';
+    if (_mood != null && mood != _mood) startVisit();
+    _mood = mood;
     if (evening && checkIn == null && visible && _offeredLoaded && !_autoScheduled && _offered != s.day) {
       _autoScheduled = true;
       Future.delayed(const Duration(milliseconds: 1400), () => _autoOpen(s.day));
@@ -109,9 +121,16 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           top: 0,
           child: GestureDetector(
             onTapUp: (d) => _tickle(d.globalPosition),
-            child: missed
-                ? Scene(asset: 'assets/scenes/living-empty.jpg', height: sceneH, groundAt: .8, characterSize: .5, characterX: .52, character: const LiveClover(action: CloverAction.sad), overlay: RoomLight(time: clockNow))
-                : Scene(asset: s.goalMet ? 'assets/scenes/living-flex.jpg' : 'assets/scenes/living.jpg', height: sceneH, overlay: RoomLight(time: clockNow)),
+            // Clover isn't home when the tab opens; after 2 s she walks in and thinks about what's next,
+            // mopes after a missed day, or beams once the day is done. A new mood restarts her arrival.
+            child: CloverSceneView(
+              key: ValueKey('$mood-$visit'),
+              scene: CloverScene.today,
+              height: sceneH,
+              action: missed ? CloverAction.todaySad : s.goalMet ? CloverAction.todayProud : CloverAction.todayThink,
+              overlay: RoomLight(time: clockNow),
+              fadeHeight: 96,
+            ),
           ),
         ),
         Positioned(
@@ -144,7 +163,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             ),
           ),
         ),
-        Positioned(left: 140, right: 16, top: sceneH * (missed ? .17 : .33), child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: _tickled ? 'Hehe! That tickles.' : evening && checkIn != null ? checkIn.reply : missed ? 'I saved you a spot on the mat.' : _lines[s.done.clamp(0, 3)]))),
+        Positioned(left: 140, right: 16, top: sceneH * (missed ? .17 : .33), child: Align(alignment: Alignment.centerLeft, child: ArrivedPop(shown: arrived, child: SpeechBubble(text: _tickled ? 'Hehe! That tickles.' : evening && checkIn != null ? checkIn.reply : missed ? 'I saved you a spot on the mat.' : _lines[s.done.clamp(0, 3)])))),
         Positioned.fill(
           top: sceneH - 40,
           child: SingleChildScrollView(
@@ -408,3 +427,4 @@ class _CheckInRow extends StatelessWidget {
     );
   }
 }
+

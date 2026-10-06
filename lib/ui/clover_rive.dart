@@ -23,7 +23,41 @@ enum CloverAction {
   reach(3),
   hop(4),
   cheer(5),
-  sad(6);
+  sad(6),
+
+  /// Today's roaming Clover (new rig). Each arrives after 2 s offscreen, walks in, then loops:
+  /// thinking (default), sad (missed yesterday), proud (day complete).
+  todayThink(7),
+  todaySad(8),
+  todayProud(9),
+
+  /// The gym (Shop tab): she comes in through the garage door and loops jumping jacks.
+  gymJacks(10),
+
+  /// The balcony (Plan tab): she comes out of the house with her watering can and waters the white
+  /// flowers, then the lavender, then strolls back (a 10 s loop).
+  balconyWater(11),
+
+  /// The hallway (Progress tab): she walks in and daydreams under the next empty milestone frame
+  /// (frames 2-5), or admires the finished gallery once every milestone is reached.
+  hallGaze2(13),
+  hallGaze3(14),
+  hallGaze4(15),
+  hallGaze5(16),
+  hallDone(17),
+
+  /// The bedroom (Profile tab): she walks in and tidies her bookshelf.
+  bedroomTidy(18);
+
+  /// The hallway action for the next milestone frame ([next] is its index, 1-4), or the
+  /// finished gallery when there is none.
+  static CloverAction hallFor(int? next) => switch (next) {
+        1 => hallGaze2,
+        2 => hallGaze3,
+        3 => hallGaze4,
+        4 => hallGaze5,
+        _ => hallDone,
+      };
 
   const CloverAction(this.value);
   final int value;

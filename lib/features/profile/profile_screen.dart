@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/plan.dart';
@@ -9,6 +10,8 @@ import '../../data/premium.dart';
 import '../../data/profile.dart';
 import '../../data/weight.dart';
 import '../../ui/bits.dart';
+import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
@@ -50,6 +53,9 @@ class ProfileScreen extends ConsumerWidget {
 
     return RoomFrame(
       asset: 'assets/scenes/bedroom.jpg',
+      scene: CloverScene.profile,
+      action: CloverAction.bedroomTidy,
+      room: Room.profile,
       line: line,
       title: '${profile.displayName} & ${profile.catName}',
       subtitle: Row(children: [

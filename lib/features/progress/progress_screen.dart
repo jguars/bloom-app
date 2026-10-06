@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/feel.dart';
 import '../../app/motion.dart';
 import '../../app/sfx.dart';
+import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/profile.dart';
 import '../../data/weight.dart';
 import '../../ui/bits.dart';
+import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
@@ -56,6 +59,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     final log = ref.watch(weightProvider);
     final units = ref.watch(unitsProvider);
     final next = journal.next;
+    final nextIndex = next == null ? null : milestones.indexOf(next);
     final day = journal.dayNumber + 1;
     final subtitle = next == null
         ? 'Day $day · every flag reached!'
@@ -72,6 +76,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     : 'Look how far we’ve come!');
     return RoomFrame(
       asset: 'assets/scenes/hallway.jpg',
+      // She daydreams under the next milestone's empty frame (or admires the full gallery).
+      scene: CloverScene.progress,
+      action: CloverAction.hallFor(nextIndex),
+      room: Room.progress,
+      head: Offset(nextIndex == null ? 512 : CloverScene.hallFrames[nextIndex].center.dx, 455),
+      sceneOverlay: _Portraits(reached: milestones.where(journal.reached).length),
       line: line,
       bubbleLeft: 150,
       title: 'Progress',
@@ -86,18 +96,23 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
           }),
         ),
         const SizedBox(height: 16),
-        AnimatedSwitcher(
-          duration: BloomMotion.base,
-          switchInCurve: BloomMotion.enter,
-          switchOutCurve: BloomMotion.leave,
-          layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
-          transitionBuilder: (c, a) => FadeTransition(
-            opacity: a,
-            child: SlideTransition(position: Tween(begin: Offset(c.key == const ValueKey(1) ? .08 : -.08, 0), end: Offset.zero).animate(a), child: c),
+        SwipePanels(
+          index: _view,
+          count: 2,
+          onChanged: (i) => setState(() {
+            _view = i;
+            _reply = null;
+          }),
+          child: AnimatedSwitcher(
+            duration: BloomMotion.base,
+            switchInCurve: BloomMotion.enter,
+            switchOutCurve: BloomMotion.leave,
+            layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
+            transitionBuilder: (c, a) => panelTransition(c, a),
+            child: _view == 0
+                ? KeyedSubtree(key: const ValueKey(0), child: _WeightView(log: log, units: units, journal: journal, onGoal: () => _openSheet(goalOnly: true), onLog: _openSheet))
+                : KeyedSubtree(key: const ValueKey(1), child: JourneyView(journal: journal)),
           ),
-          child: _view == 0
-              ? KeyedSubtree(key: const ValueKey(0), child: _WeightView(log: log, units: units, journal: journal, onGoal: () => _openSheet(goalOnly: true), onLog: _openSheet))
-              : KeyedSubtree(key: const ValueKey(1), child: JourneyView(journal: journal)),
         ),
         const SizedBox(height: 20),
         KeyedSubtree(
@@ -212,4 +227,25 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 6),
         Text(label, style: BloomText.caption),
       ]);
+}
+
+/// Her milestone portraits, hung in the hallway's frames: one per milestone reached.
+class _Portraits extends StatelessWidget {
+  const _Portraits({required this.reached});
+  final int reached;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+        child: LayoutBuilder(builder: (context, box) {
+          const scene = CloverScene.progress;
+          final size = box.biggest;
+          return Stack(children: [
+            for (var i = 0; i < reached && i < CloverScene.hallFrames.length; i++)
+              Positioned.fromRect(
+                rect: Rect.fromPoints(scene.toScreen(CloverScene.hallFrames[i].topLeft, size), scene.toScreen(CloverScene.hallFrames[i].bottomRight, size)),
+                child: Image.asset('assets/scenes/portrait-${i + 1}.webp', fit: BoxFit.cover),
+              ),
+          ]);
+        }),
+      );
 }
