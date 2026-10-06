@@ -17,6 +17,7 @@ dependencies:
   flutter_timezone: ^5.1.1
   rive: ^0.14.11
   image_picker: ^1.2.3
+  home_widget: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +30,7 @@ flutter:
     - assets/scenes/
     - assets/sfx/
     - assets/rive/
+    - assets/widget/
   fonts:
     - family: Nunito
       fonts:

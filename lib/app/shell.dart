@@ -9,6 +9,7 @@ import '../features/shop/shop_screen.dart';
 import '../features/today/flow.dart';
 import '../features/today/today_screen.dart';
 import 'motion.dart';
+import 'home_widgets.dart';
 import 'reminders.dart';
 import 'sfx.dart';
 import 'theme.dart';
@@ -138,9 +139,12 @@ class _ReminderRouter extends ConsumerStatefulWidget {
 }
 
 class _ReminderRouterState extends ConsumerState<_ReminderRouter> {
+  late final _widgets = HomeWidgetSync(ref);
+
   @override
   void initState() {
     super.initState();
+    _widgets.start();
     Reminders.tapped.addListener(_route);
     WidgetsBinding.instance.addPostFrameCallback((_) => _route());
   }

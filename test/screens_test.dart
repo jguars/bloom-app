@@ -16,6 +16,7 @@ import 'package:bloom/features/profile/plan_report_screen.dart';
 import 'package:bloom/features/profile/profile_screen.dart';
 import 'package:bloom/features/profile/weekly_screen.dart';
 import 'package:bloom/features/profile/weight_history_screen.dart';
+import 'package:bloom/features/profile/widget_sheet.dart';
 import 'package:bloom/features/progress/progress_screen.dart';
 import 'package:bloom/features/shop/shop_screen.dart';
 import 'package:bloom/features/today/celebration_screen.dart';
@@ -242,4 +243,5 @@ void main() {
   testWidgets('food-example', (t) => _shot(t, 'food-example', const FoodCheckScreen(), then: (t) async {
         await t.tap(find.text('See an example'));
       }));
+  testWidgets('widget-sheet', (t) => _shot(t, 'widget-sheet', const Scaffold(body: Padding(padding: EdgeInsets.fromLTRB(20, 80, 20, 0), child: WidgetSheet())), assets: ['assets/widget/widget_clover_rest.png']));
 }

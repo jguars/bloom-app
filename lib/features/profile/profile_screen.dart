@@ -19,6 +19,7 @@ import '../today/flow.dart';
 import 'plan_report_screen.dart';
 import 'week_stats.dart';
 import 'weekly_screen.dart';
+import 'widget_sheet.dart';
 import 'weight_history_screen.dart';
 
 /// The bedroom: you and Clover, this week, reports and settings.
@@ -106,6 +107,11 @@ class ProfileScreen extends ConsumerWidget {
             caption: profile.evening ? '${clockText(profile.eveningAt)} · tap to change' : 'How did today go?',
             onTap: profile.evening ? () => pickTime(context, profile.eveningAt, (m) => update(ref.read(profileProvider).copyWith(eveningAt: m))) : null,
             trailing: BloomToggle(label: 'Evening reminder', value: profile.evening, onChanged: (v) => reminder(false, v)),
+          ),
+          GroupRow(
+            title: 'Home-screen widgets',
+            caption: 'Clover and today’s moves at a glance',
+            onTap: () => showBloomSheet<void>(context, (c) => const WidgetSheet()),
           ),
           GroupRow(
             title: 'Sounds',

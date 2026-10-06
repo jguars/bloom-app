@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_label">Bloom · Today</string>
+    <string name="widget_clover_label">Bloom · Clover</string>
+    <string name="widget_today_description">Clover, her line and today\'s moves.</string>
+    <string name="widget_clover_description">Just Clover, with today\'s count.</string>
+    <string name="widget_clover_image">Clover the cat</string>
+    <string name="widget_eyebrow">TODAY WITH CLOVER</string>
+    <string name="widget_line_default">Mm… sofa\'s warm. Unless you\'re coming?</string>
+    <string name="widget_done_default">0 of 3 today</string>
+</resources>
