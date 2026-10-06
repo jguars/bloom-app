@@ -14,6 +14,7 @@ import '../../data/exercises.dart';
 import '../../data/journal.dart';
 import '../../data/today.dart';
 import '../../ui/clover_rive.dart';
+import '../../ui/room_light.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
@@ -21,6 +22,7 @@ import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
+import '../urge/urge_screen.dart';
 import 'check_in_sheet.dart';
 import 'flow.dart';
 import 'ready_screen.dart';
@@ -107,8 +109,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           child: GestureDetector(
             onTapUp: (d) => _tickle(d.globalPosition),
             child: missed
-                ? Scene(asset: 'assets/scenes/living-empty.jpg', height: sceneH, groundAt: .8, characterSize: .5, characterX: .52, character: const LiveClover(action: CloverAction.sad))
-                : Scene(asset: s.goalMet ? 'assets/scenes/living-flex.jpg' : 'assets/scenes/living.jpg', height: sceneH),
+                ? Scene(asset: 'assets/scenes/living-empty.jpg', height: sceneH, groundAt: .8, characterSize: .5, characterX: .52, character: const LiveClover(action: CloverAction.sad), overlay: RoomLight(time: clockNow))
+                : Scene(asset: s.goalMet ? 'assets/scenes/living-flex.jpg' : 'assets/scenes/living.jpg', height: sceneH, overlay: RoomLight(time: clockNow)),
           ),
         ),
         Positioned(
@@ -119,6 +121,27 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             _Pill('${wd[now.weekday - 1]}, ${mo[now.month - 1]} ${now.day}'),
             PawChip(key: _chipKey, paws: s.paws),
           ]),
+        ),
+        Positioned(
+          left: 16,
+          top: mq.padding.top + 56,
+          child: Semantics(
+            button: true,
+            label: 'Craving something? Get help from Clover',
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).push(bloomRoute(const UrgeScreen())),
+              child: Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(color: BloomColors.skyDeep, borderRadius: BorderRadius.circular(BloomSpace.rPill), boxShadow: const [BoxShadow(color: Color(0x332E3826), blurRadius: 10, offset: Offset(0, 4))]),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.waves_rounded, size: 18, color: BloomColors.surface),
+                  const SizedBox(width: 6),
+                  Text('Craving?', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.surface)),
+                ]),
+              ),
+            ),
+          ),
         ),
         Positioned(left: 140, right: 16, top: sceneH * (missed ? .17 : .33), child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: _tickled ? 'Hehe! That tickles.' : evening && checkIn != null ? checkIn.reply : missed ? 'I saved you a spot on the mat.' : _lines[s.done.clamp(0, 3)]))),
         Positioned.fill(

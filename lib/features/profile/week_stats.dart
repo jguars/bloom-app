@@ -10,6 +10,8 @@ class WeekStats {
   List<DayLog> get logs => [for (final d in days) journal.on(d)];
   int get moves => logs.fold(0, (a, d) => a + d.moves);
   int get minutes => (logs.fold(0, (a, d) => a + d.seconds) / 60).round();
+  int get urges => logs.fold(0, (a, d) => a + d.urges);
+  int get rodeOut => logs.fold(0, (a, d) => a + d.rodeOut);
   int get checkIns => logs.where((d) => d.checkIn != null).length;
   int get activeDays => logs.where((d) => d.moves > 0).length;
 

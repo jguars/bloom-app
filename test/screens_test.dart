@@ -18,6 +18,7 @@ import 'package:bloom/features/profile/weight_history_screen.dart';
 import 'package:bloom/features/progress/progress_screen.dart';
 import 'package:bloom/features/shop/shop_screen.dart';
 import 'package:bloom/features/today/celebration_screen.dart';
+import 'package:bloom/features/urge/urge_screen.dart';
 import 'package:bloom/features/today/ready_screen.dart';
 import 'package:bloom/features/today/session_screen.dart';
 import 'package:bloom/ui/fx_layer.dart';
@@ -221,4 +222,19 @@ void main() {
       'bloom.journal.v1': jsonEncode({'start': dayKey(start), 'effort': 4.0, 'days': {}}),
     });
   });
+  testWidgets('urge', (t) => _shot(t, 'urge', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg']));
+  testWidgets('urge-breathe', (t) => _shot(t, 'urge-breathe', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg'], then: (t) async {
+        await t.tap(find.text('Breathe with me'));
+        for (var i = 0; i < 20; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
+  testWidgets('urge-ask', (t) => _shot(t, 'urge-ask', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg'], then: (t) async {
+        await t.tap(find.text('Drink a glass of water'));
+        await t.pump(const Duration(milliseconds: 600));
+        await t.tap(find.text('Done'));
+      }));
+  testWidgets('today-dusk', (t) => _shot(t, 'today-dusk', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'all'), hour: 19));
+  testWidgets('today-night', (t) => _shot(t, 'today-night', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'mostly'), hour: 23));
+  testWidgets('today-dawn', (t) => _shot(t, 'today-dawn', const Shell(), assets: ['assets/scenes/living.jpg'], hour: 6));
 }

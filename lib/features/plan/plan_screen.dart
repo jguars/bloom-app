@@ -9,6 +9,8 @@ import '../../data/plan.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
+import '../today/flow.dart';
+import '../urge/urge_screen.dart';
 import 'rule_sheet.dart';
 
 /// The balcony garden: small daily rules to do more of, and things to skip.
@@ -42,6 +44,14 @@ class PlanScreen extends ConsumerWidget {
         _Section(kind: PlanKind.more, plan: plan),
         const SizedBox(height: 18),
         _Section(kind: PlanKind.skip, plan: plan),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => Navigator.of(context).push(bloomRoute(const UrgeScreen())),
+            icon: const Icon(Icons.waves_rounded, size: 18, color: BloomColors.skyDeep),
+            label: Text('Craving one of these? Ride it out with Clover', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.skyDeep)),
+          ),
+        ),
         const SizedBox(height: 18),
         LedgeButton(
           label: 'Add a rule',

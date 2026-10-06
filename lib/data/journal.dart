@@ -51,9 +51,15 @@ enum CheckIn {
 /// Paws for checking in, whatever the answer.
 const kCheckInPaws = 5;
 
+/// Paws for riding out a craving, at most [kUrgePawsPerDay] times a day.
+const kUrgePaws = 5, kUrgePawsPerDay = 3;
+
 class DayLog {
-  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0, this.checkIn});
+  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0, this.checkIn, this.urges = 0, this.rodeOut = 0});
   final int moves, seconds;
+
+  /// Cravings met with urge support, and how many passed.
+  final int urges, rodeOut;
   final CheckIn? checkIn;
 
   /// Ids of plan rules kept that day.
@@ -62,16 +68,25 @@ class DayLog {
   /// How many rules the plan had that day.
   final int rules;
 
-  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules, CheckIn? checkIn}) =>
-      DayLog(moves: moves ?? this.moves, seconds: seconds ?? this.seconds, kept: kept ?? this.kept, rules: rules ?? this.rules, checkIn: checkIn ?? this.checkIn);
+  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules, CheckIn? checkIn, int? urges, int? rodeOut}) => DayLog(
+        moves: moves ?? this.moves,
+        seconds: seconds ?? this.seconds,
+        kept: kept ?? this.kept,
+        rules: rules ?? this.rules,
+        checkIn: checkIn ?? this.checkIn,
+        urges: urges ?? this.urges,
+        rodeOut: rodeOut ?? this.rodeOut,
+      );
 
-  Map<String, Object?> toJson() => {'m': moves, 's': seconds, 'k': kept, 'r': rules, if (checkIn != null) 'c': checkIn!.name};
+  Map<String, Object?> toJson() => {'m': moves, 's': seconds, 'k': kept, 'r': rules, if (checkIn != null) 'c': checkIn!.name, if (urges > 0) 'u': urges, if (rodeOut > 0) 'o': rodeOut};
   factory DayLog.fromJson(Map<String, Object?> j) => DayLog(
         moves: (j['m'] as num?)?.toInt() ?? 0,
         seconds: (j['s'] as num?)?.toInt() ?? 0,
         kept: (j['k'] as List?)?.cast<String>() ?? const [],
         rules: (j['r'] as num?)?.toInt() ?? 0,
         checkIn: CheckIn.values.asNameMap()[j['c']],
+        urges: (j['u'] as num?)?.toInt() ?? 0,
+        rodeOut: (j['o'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -195,6 +210,15 @@ class JournalNotifier extends Notifier<Journal> {
     _put(_todayLog.copyWith(checkIn: c));
     _save();
     return first;
+  }
+
+  /// A craving met with urge support. Returns true if paws are due (the
+  /// craving passed and today's cap isn't reached).
+  bool logUrge({required bool passed}) {
+    final d = _todayLog;
+    _put(d.copyWith(urges: d.urges + 1, rodeOut: d.rodeOut + (passed ? 1 : 0)));
+    _save();
+    return passed && d.rodeOut < kUrgePawsPerDay;
   }
 
   /// Today's plan as it stands: which rules are kept, out of how many.

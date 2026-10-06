@@ -22,6 +22,7 @@ class Scene extends StatefulWidget {
     this.groundAt = .82,
     this.characterSize = .6,
     this.characterX = .5,
+    this.overlay,
   });
 
   final String asset;
@@ -40,6 +41,9 @@ class Scene extends StatefulWidget {
 
   /// Her box height as a share of the scene height, and her centre across.
   final double characterSize, characterX;
+
+  /// Painted over the art (under the character), moving with it.
+  final Widget? overlay;
 
   @override
   State<Scene> createState() => _SceneState();
@@ -86,13 +90,17 @@ class _SceneState extends State<Scene> with TickerProviderStateMixin {
               );
             },
             child: widget.character == null
-                ? Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true)
+                ? Stack(fit: StackFit.expand, children: [
+                    Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true),
+                    ?widget.overlay,
+                  ])
                 : LayoutBuilder(builder: (context, box) {
                     // The Rive artboard is 600×700 with her feet at y = 620.
                     final h = box.maxHeight * widget.characterSize;
                     final w = h * 600 / 700;
                     return Stack(fit: StackFit.expand, children: [
                       Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true),
+                      ?widget.overlay,
                       Positioned(
                         left: box.maxWidth * widget.characterX - w / 2,
                         top: box.maxHeight * widget.groundAt - h * 620 / 700,
