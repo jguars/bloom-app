@@ -33,7 +33,8 @@ class PerfTour {
     for (final r in [Room.shop, Room.plan, Room.progress, Room.profile, Room.today]) {
       PerfProbe.tab(r.name);
       ref.read(roomProvider.notifier).go(r);
-      await wait(3);
+      // Long enough for Clover to walk in and settle (the arrival takes ~5.3 s).
+      await wait(8);
     }
     final march = dailyExercises.firstWhere((e) => e.id == 'march');
     final squats = dailyExercises.firstWhere((e) => e.id == 'squats');

@@ -12,6 +12,7 @@ import '../../data/weight.dart';
 import '../../ui/bits.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
+import '../../ui/window_sky.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
@@ -56,6 +57,7 @@ class ProfileScreen extends ConsumerWidget {
       scene: CloverScene.profile,
       action: CloverAction.bedroomTidy,
       room: Room.profile,
+      sceneOverlay: const BedroomWindow(),
       line: line,
       title: '${profile.displayName} & ${profile.catName}',
       subtitle: Row(children: [

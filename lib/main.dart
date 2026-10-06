@@ -20,6 +20,8 @@ import 'ui/fx_layer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Portrait only: every room is composed for a tall screen.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await CloverRive.init();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

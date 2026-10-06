@@ -40,8 +40,10 @@ enum CloverScene {
   /// Progress room passes it in.
   progress('assets/rive/progress_scene.riv', 'ProgressScene', 'assets/scenes/hallway-empty.jpg', Alignment(-.6, 0), Offset(512, 455), Size(1100, 842)),
 
-  /// The bedroom (Profile tab). After 2 s she walks in from the left and tidies her bookshelf.
-  profile('assets/rive/profile_scene.riv', 'ProfileScene', 'assets/scenes/bedroom-empty.jpg', Alignment(-.3, 0), Offset(560, 467), Size(1100, 842));
+  /// The bedroom (Profile tab). After 2 s she walks in from the left and tidies her bookshelf. The art is
+  /// padded (wall above, floor below, wall on the right) and framed right of centre, so the shelf on the
+  /// left and the round window and lamp on the right sit evenly in view. The window's sky is live (BedroomWindow).
+  profile('assets/rive/profile_scene.riv', 'ProfileScene', 'assets/scenes/bedroom-empty.jpg', Alignment(.82, 0), Offset(560, 517), Size(1160, 942));
 
   /// The hallway's five frame openings (the mats inside the wood), in artboard units.
   static const hallFrames = [

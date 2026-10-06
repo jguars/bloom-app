@@ -54,9 +54,11 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       subtitle: Text('Gear unlocks new moves for you both.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       showPaws: true,
       bubbleLeft: 16,
-      children: [
+      // The scene, title and the switch stay put; only the items scroll, under them.
+      pinned: [
         SegmentedSwitch(labels: const ['Equipment', 'Room decor'], index: _tab, onChanged: (i) => setState(() => _tab = i)),
-        const SizedBox(height: 16),
+      ],
+      children: [
         SwipePanels(
           index: _tab,
           count: 2,

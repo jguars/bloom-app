@@ -35,6 +35,7 @@ class RoomFrame extends ConsumerStatefulWidget {
     this.room,
     this.head,
     this.sceneOverlay,
+    this.pinned,
   });
 
   final String asset, line, title;
@@ -55,6 +56,10 @@ class RoomFrame extends ConsumerStatefulWidget {
   /// Painted over the scene's art (e.g. the hallway's portraits), sized to the scene.
   final Widget? sceneOverlay;
 
+  /// When set, the scene and a pane with the title, subtitle and these widgets (e.g. the Shop's
+  /// sub-panel switch) stay frozen, and only [children] scroll, sliding away under the pane.
+  final List<Widget>? pinned;
+
   @override
   ConsumerState<RoomFrame> createState() => _RoomFrameState();
 }
@@ -62,6 +67,31 @@ class RoomFrame extends ConsumerStatefulWidget {
 class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
   @override
   Room get visitRoom => widget.room!;
+
+  /// Her line. Over a live scene the tail tips toward the top of her head, and the bubble hangs on
+  /// whichever side of her has room, never running off the screen; otherwise it's pinned top-left.
+  Widget _bubble(Offset? head, String line, double sceneH, MediaQueryData mq) {
+    if (head == null) {
+      return Positioned(left: widget.bubbleLeft, top: mq.padding.top + widget.bubbleTop, child: IgnorePointer(child: SpeechBubble(text: line)));
+    }
+    final bottom = sceneH - 70 - head.dy + 6;
+    final onLeft = head.dx > mq.size.width * .5;
+    return Positioned(
+      left: onLeft ? 16 : head.dx - 5,
+      right: onLeft ? mq.size.width - head.dx - 5 : 16,
+      bottom: bottom,
+      child: IgnorePointer(
+        child: Align(
+          alignment: onLeft ? Alignment.bottomRight : Alignment.bottomLeft,
+          child: ArrivedPop(
+            shown: arrived,
+            alignment: onLeft ? Alignment.bottomRight : Alignment.bottomLeft,
+            child: SpeechBubble(text: line, tailRight: onLeft),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,71 +103,139 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
     final paws = ref.watch(todayProvider.select((s) => s.paws));
     return ColoredBox(
       color: BloomColors.surface,
-      child: Stack(fit: StackFit.expand, children: [
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          child: scene != null
-              ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, fadeHeight: 72)
-              : Scene(asset: asset, height: sceneH, fadeHeight: 62),
-        ),
-        CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Clover's line rides with the scene, so the panel never slides
-            // under a pinned bubble.
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: sceneH - 70,
-                child: Stack(clipBehavior: Clip.none, children: [
-                  if (head != null)
-                    // Tail tip just left of the top of her head.
-                    Positioned(
-                      right: mq.size.width - head.dx - 5,
-                      bottom: sceneH - 70 - head.dy + 6,
-                      child: IgnorePointer(child: ArrivedPop(shown: arrived, alignment: Alignment.bottomRight, child: SpeechBubble(text: line, tailRight: true))),
-                    )
-                  else
-                    Positioned(left: bubbleLeft, top: mq.padding.top + bubbleTop, child: IgnorePointer(child: SpeechBubble(text: line))),
-                ]),
-              ),
-            ),
-            // A soft lead-in so the panel's top edge never shows as a hard line
-            // once it scrolls up over the art.
-            const SliverToBoxAdapter(
-              child: SizedBox(
-                height: 40,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0x00FFFBF3), BloomColors.surface],
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: scene != null
+                ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, fadeHeight: 72)
+                : Scene(asset: asset, height: sceneH, fadeHeight: 62),
+          ),
+          if (widget.pinned case final pinned?)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: sceneH - 70,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _bubble(head, line, sceneH, mq),
+                    ],
+                  ),
+                ),
+                const _LeadIn(),
+                Container(
+                  color: BloomColors.surface,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      RiseIn(child: Text(title, style: BloomText.display)),
+                      const SizedBox(height: 2),
+                      RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
+                      const SizedBox(height: 16),
+                      ...pinned,
+                    ],
+                  ),
+                ),
+                // Only the items scroll; they slip under the pane (softly, through a short fade).
+                Expanded(
+                  child: ClipRect(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(16, 16, 16, 110 + mq.padding.bottom),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+                          ),
+                        ),
+                        const Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          height: 16,
+                          child: IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [BloomColors.surface, Color(0x00FFFBF3)]),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
+              ],
+            )
+          else
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Clover's line rides with the scene, so the panel never slides
+                // under a pinned bubble.
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: sceneH - 70,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _bubble(head, line, sceneH, mq),
+                      ],
+                    ),
+                  ),
+                ),
+                // A soft lead-in so the panel's top edge never shows as a hard line
+                // once it scrolls up over the art.
+                const SliverToBoxAdapter(child: _LeadIn()),
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: BloomColors.surface,
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 110 + mq.padding.bottom),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RiseIn(child: Text(title, style: BloomText.display)),
+                        const SizedBox(height: 2),
+                        RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
+                        const SizedBox(height: 16),
+                        ...children,
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            SliverToBoxAdapter(
-              child: Container(
-                color: BloomColors.surface,
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 110 + mq.padding.bottom),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  RiseIn(child: Text(title, style: BloomText.display)),
-                  const SizedBox(height: 2),
-                  RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
-                  const SizedBox(height: 16),
-                  ...children,
-                ]),
-              ),
+          if (showPaws)
+            Positioned(
+              right: 16,
+              top: mq.padding.top + 12,
+              child: PawChip(key: pawsKey, paws: paws),
             ),
-          ],
-        ),
-        if (showPaws) Positioned(right: 16, top: mq.padding.top + 12, child: PawChip(key: pawsKey, paws: paws)),
-      ]),
+        ],
+      ),
     );
   }
+}
+
+/// The soft fade from the scene into the panel, so the panel's top edge never shows as a line.
+class _LeadIn extends StatelessWidget {
+  const _LeadIn();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    height: 40,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x00FFFBF3), BloomColors.surface]),
+      ),
+    ),
+  );
 }
 
 /// Two or three peer views (design system: SegmentedSwitch).
@@ -153,42 +251,52 @@ class SegmentedSwitch extends StatelessWidget {
       height: 48,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(color: BloomColors.paperSunk, borderRadius: BorderRadius.circular(BloomSpace.rPill)),
-      child: LayoutBuilder(builder: (context, c) {
-        final w = c.maxWidth / labels.length;
-        return Stack(children: [
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 320),
-            curve: const Cubic(.2, 1.3, .35, 1),
-            left: index * w,
-            top: 0,
-            bottom: 0,
-            width: w,
-            child: Container(
-              decoration: BoxDecoration(color: BloomColors.surface, borderRadius: BorderRadius.circular(BloomSpace.rPill), boxShadow: const [BoxShadow(color: BloomColors.line, offset: Offset(0, 2))]),
-            ),
-          ),
-          Row(children: [
-            for (var i = 0; i < labels.length; i++)
-              Expanded(
-                child: Semantics(
-                  selected: i == index,
-                  button: true,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => onChanged(i),
-                    child: Center(
-                      child: AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: BloomText.button.copyWith(fontSize: 15, color: i == index ? BloomColors.ink : BloomColors.inkMuted),
-                        child: Text(labels[i]),
-                      ),
-                    ),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final w = c.maxWidth / labels.length;
+          return Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 320),
+                curve: const Cubic(.2, 1.3, .35, 1),
+                left: index * w,
+                top: 0,
+                bottom: 0,
+                width: w,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: BloomColors.surface,
+                    borderRadius: BorderRadius.circular(BloomSpace.rPill),
+                    boxShadow: const [BoxShadow(color: BloomColors.line, offset: Offset(0, 2))],
                   ),
                 ),
               ),
-          ]),
-        ]);
-      }),
+              Row(
+                children: [
+                  for (var i = 0; i < labels.length; i++)
+                    Expanded(
+                      child: Semantics(
+                        selected: i == index,
+                        button: true,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onChanged(i),
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: BloomText.button.copyWith(fontSize: 15, color: i == index ? BloomColors.ink : BloomColors.inkMuted),
+                              child: Text(labels[i]),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -212,11 +320,21 @@ Future<T?> showBloomSheet<T>(BuildContext context, WidgetBuilder builder) {
           boxShadow: [BoxShadow(color: Color(0x292E3826), blurRadius: 32, offset: Offset(0, -6))],
         ),
         padding: EdgeInsets.fromLTRB(20, 10, 20, 24 + MediaQuery.of(context).padding.bottom),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Center(child: Container(width: 36, height: 5, decoration: BoxDecoration(color: BloomColors.lineStrong, borderRadius: BorderRadius.circular(3)))),
-          const SizedBox(height: 16),
-          Builder(builder: builder),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(color: BloomColors.lineStrong, borderRadius: BorderRadius.circular(3)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Builder(builder: builder),
+          ],
+        ),
       ),
     ),
   );
@@ -232,25 +350,29 @@ class SwipePanels extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (d) {
-          final v = d.primaryVelocity ?? 0;
-          final to = v < -200 ? index + 1 : v > 200 ? index - 1 : index;
-          if (to != index && to >= 0 && to < count) {
-            Feel.selectionClick();
-            onChanged(to);
-          }
-        },
-        child: child,
-      );
+    behavior: HitTestBehavior.translucent,
+    onHorizontalDragEnd: (d) {
+      final v = d.primaryVelocity ?? 0;
+      final to = v < -200
+          ? index + 1
+          : v > 200
+          ? index - 1
+          : index;
+      if (to != index && to >= 0 && to < count) {
+        Feel.selectionClick();
+        onChanged(to);
+      }
+    },
+    child: child,
+  );
 }
 
 /// The slide for two swiped panels (keyed `ValueKey(0)` and `ValueKey(1)`): the first lives on the
 /// left and the second on the right, so each comes in from, and leaves towards, its own side.
 Widget panelTransition(Widget c, Animation<double> a) => FadeTransition(
-      opacity: a,
-      child: SlideTransition(
-        position: Tween(begin: Offset((c.key as ValueKey<int>).value == 0 ? -.1 : .1, 0), end: Offset.zero).animate(a),
-        child: c,
-      ),
-    );
+  opacity: a,
+  child: SlideTransition(
+    position: Tween(begin: Offset((c.key as ValueKey<int>).value == 0 ? -.1 : .1, 0), end: Offset.zero).animate(a),
+    child: c,
+  ),
+);
