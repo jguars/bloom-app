@@ -76,7 +76,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     Feel.selectionClick();
     final bought = await showBloomSheet<bool>(context, (context) => _BuySheet(item: item));
     if (bought != true || !mounted) return;
-    SfxPlayer.instance.play(Sfx.cheer);
+    SfxPlayer.instance.play(Sfx.unlock);
     await Navigator.of(context).push(bloomRoute(UnlockedScreen(item: item)));
   }
 }

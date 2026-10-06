@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/feel.dart';
 import '../../app/motion.dart';
+import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/plan.dart';
@@ -196,10 +197,12 @@ class _RuleChip extends ConsumerWidget {
           final box = context.findRenderObject() as RenderBox?;
           if (on && box != null) {
             Feel.lightImpact();
+            SfxPlayer.instance.play(Sfx.check);
             final c = box.localToGlobal(box.size.center(Offset.zero));
             FxLayer.fly(c, c + const Offset(0, -90), '+$kPawsPerRule');
           } else {
             Feel.selectionClick();
+            SfxPlayer.instance.play(Sfx.uncheck);
           }
         },
         child: TweenAnimationBuilder<double>(

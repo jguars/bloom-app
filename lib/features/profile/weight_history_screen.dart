@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/profile.dart';
 import '../../data/weight.dart';
@@ -63,6 +64,7 @@ class _Entry extends ConsumerWidget {
       onDismissed: (_) {
         final n = ref.read(weightProvider.notifier);
         n.remove(entry);
+        SfxPlayer.instance.play(Sfx.swipe);
         final m = ScaffoldMessenger.of(context);
         m.hideCurrentSnackBar();
         m.showSnackBar(SnackBar(

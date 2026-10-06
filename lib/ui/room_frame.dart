@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/sfx.dart';
 import '../app/theme.dart';
 import '../data/today.dart';
 import 'paw.dart';
@@ -145,6 +146,7 @@ class SegmentedSwitch extends StatelessWidget {
 /// Opens a design-system bottom sheet: surface, xl top corners, handle,
 /// springy slide-up.
 Future<T?> showBloomSheet<T>(BuildContext context, WidgetBuilder builder) {
+  SfxPlayer.instance.play(Sfx.whoosh);
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,

@@ -3,6 +3,7 @@ import '../../app/feel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
+import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/plan.dart';
 import '../../ui/fx_layer.dart';
@@ -129,6 +130,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     final on = ref.read(planProvider.notifier).toggle(widget.rule.id);
     if (on) {
       Feel.lightImpact();
+      SfxPlayer.instance.play(Sfx.check);
       final box = _checkKey.currentContext?.findRenderObject() as RenderBox?;
       if (box != null) {
         final c = box.localToGlobal(box.size.center(Offset.zero));
@@ -137,6 +139,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
       }
     } else {
       Feel.selectionClick();
+      SfxPlayer.instance.play(Sfx.uncheck);
     }
   }
 
@@ -144,6 +147,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     final notifier = ref.read(planProvider.notifier);
     final rule = widget.rule;
     final index = notifier.remove(rule.id);
+    SfxPlayer.instance.play(Sfx.swipe);
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(SnackBar(

@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../data/exercises.dart';
 import '../../data/journal.dart';
 import '../../data/today.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
@@ -46,6 +47,21 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   String? _offered;
   bool _offeredLoaded = false, _autoScheduled = false;
 
+  /// Tapped the room: she purrs and says so for a moment.
+  bool _tickled = false;
+  int _tickles = 0;
+
+  void _tickle(Offset at) {
+    SfxPlayer.instance.play(Sfx.purr, volume: .8);
+    Feel.lightImpact();
+    FxLayer.burst(at, count: 10, power: .35);
+    final n = ++_tickles;
+    setState(() => _tickled = true);
+    Future.delayed(const Duration(milliseconds: 1800), () {
+      if (mounted && n == _tickles) setState(() => _tickled = false);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +77,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(todayProvider);
+    final journal = ref.watch(journalProvider);
+    // Missed yesterday and nothing yet today: she waits, a little sad.
+    final missed = s.done == 0 && journal.dayNumber >= 1 && journal.on(journal.todayDate.subtract(const Duration(days: 1))).moves == 0;
     ref.listen(pendingRewardProvider, (_, r) {
       if (r != null) _playReward(r);
     });
@@ -81,7 +100,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     return ColoredBox(
       color: BloomColors.surface,
       child: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: s.goalMet ? 'assets/scenes/living-flex.jpg' : 'assets/scenes/living.jpg', height: sceneH)),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: GestureDetector(
+            onTapUp: (d) => _tickle(d.globalPosition),
+            child: missed
+                ? Scene(asset: 'assets/scenes/living-empty.jpg', height: sceneH, groundAt: .8, characterSize: .5, characterX: .52, character: const LiveClover(action: CloverAction.sad))
+                : Scene(asset: s.goalMet ? 'assets/scenes/living-flex.jpg' : 'assets/scenes/living.jpg', height: sceneH),
+          ),
+        ),
         Positioned(
           left: 16,
           right: 16,
@@ -91,7 +120,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             PawChip(key: _chipKey, paws: s.paws),
           ]),
         ),
-        Positioned(left: 140, right: 16, top: sceneH * .33, child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: evening && checkIn != null ? checkIn.reply : _lines[s.done.clamp(0, 3)]))),
+        Positioned(left: 140, right: 16, top: sceneH * (missed ? .17 : .33), child: Align(alignment: Alignment.centerLeft, child: SpeechBubble(text: _tickled ? 'Hehe! That tickles.' : evening && checkIn != null ? checkIn.reply : missed ? 'I saved you a spot on the mat.' : _lines[s.done.clamp(0, 3)]))),
         Positioned.fill(
           top: sceneH - 40,
           child: SingleChildScrollView(
@@ -159,7 +188,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   Future<void> _openCheckIn() async {
     final r = await showBloomSheet<CheckInResult>(context, (c) => const CheckInSheet());
     if (r == null || !mounted) return;
-    SfxPlayer.instance.play(r.answer == CheckIn.all ? Sfx.cheer : Sfx.pop);
+    SfxPlayer.instance.play(r.answer == CheckIn.all ? Sfx.cheer : Sfx.chime);
     Feel.mediumImpact();
     final size = MediaQuery.of(context).size;
     if (r.answer == CheckIn.all) FxLayer.burst(Offset(size.width / 2, size.height * .35), count: 60, power: .9);

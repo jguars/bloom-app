@@ -4,6 +4,7 @@ import 'package:bloom/app/clock.dart';
 import 'package:bloom/app/shell.dart';
 import 'package:bloom/app/theme.dart';
 import 'package:bloom/data/exercises.dart';
+import 'package:bloom/data/journal.dart';
 import 'package:bloom/data/today.dart';
 import 'dart:convert';
 
@@ -110,9 +111,9 @@ void main() {
   setUpAll(_fonts);
   const ex = Exercise(id: 'march', name: 'March in place', seconds: 120, effort: 1, cues: ['Knees up! Like this!']);
   testWidgets('today', (t) => _shot(t, 'today', const Shell(), assets: ['assets/scenes/living.jpg']));
-  testWidgets('ready', (t) => _shot(t, 'ready', const ReadyScreen(ex: ex), assets: ['assets/scenes/ready.jpg']));
-  testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march.jpg']));
-  testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1)), assets: ['assets/scenes/celebrate.jpg']));
+  testWidgets('ready', (t) => _shot(t, 'ready', const ReadyScreen(ex: ex), assets: ['assets/scenes/ready-empty.jpg']));
+  testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
+  testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
   testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg']));
   testWidgets('plan', (t) => _shot(t, 'plan', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
         await t.tap(find.bySemanticsLabel('Morning walk'));
@@ -214,4 +215,10 @@ void main() {
         await t.tap(find.text('Drink water first').last);
       }));
   testWidgets('today-checked-in', (t) => _shot(t, 'today-checked-in', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'mostly'), hour: 20));
+  testWidgets('today-missed', (t) {
+    final start = DateTime.now().subtract(const Duration(days: 3));
+    return _shot(t, 'today-missed', const Shell(), assets: ['assets/scenes/living-empty.jpg'], prefs: {
+      'bloom.journal.v1': jsonEncode({'start': dayKey(start), 'effort': 4.0, 'days': {}}),
+    });
+  });
 }

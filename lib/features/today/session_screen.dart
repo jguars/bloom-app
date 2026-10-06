@@ -9,6 +9,7 @@ import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
 import '../../data/today.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
@@ -89,7 +90,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/march.jpg', height: sceneH, motion: _count == 0 && !_paused ? SceneMotion.beat : SceneMotion.still, fadeHeight: 80)),
+        Positioned(left: 0, right: 0, top: 0, child: Scene(
+            asset: 'assets/scenes/march-empty.jpg',
+            height: sceneH,
+            motion: SceneMotion.still,
+            fadeHeight: 80,
+            groundAt: .8,
+            characterSize: .62,
+            characterX: .56,
+            character: LiveClover(action: _count > 0 || _paused ? CloverAction.rest : actionFor(widget.ex), eyesOpen: _count > 0),
+          )),
         Positioned(left: 12, top: mq.padding.top + 8, child: RoundButton(icon: Icons.close_rounded, label: 'End session', onTap: () => Navigator.of(context).pop())),
         if (_count == 0) Positioned(left: 110, top: sceneH * .28, child: SpeechBubble(text: _paused ? 'Catching our breath…' : cue)),
         Positioned.fill(

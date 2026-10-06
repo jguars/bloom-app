@@ -1,22 +1,27 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
-/// Short UI sounds, synthesised by avelo/sfx/make_sfx.py (copied from Avelo).
+/// Short UI sounds, synthesised by tools/sfx/make_sfx.py (numpy + scipy).
 enum Sfx {
-  /// Countdown 3-2-1.
+  tap('tap.wav'),
+  whoosh('whoosh.wav'),
+  swipe('swipe.wav'),
+  nope('nope.wav'),
   tick('tick.wav'),
-
-  /// The session starts.
   go('go.wav'),
-
-  /// She looks at you and asks "Ready?".
-  pop('pop.wav'),
-
-  /// The timer finishes.
   done('done.wav'),
-
-  /// The celebration sheet opens.
-  cheer('cheer.wav');
+  pop('pop.wav'),
+  purr('purr.wav'),
+  coin('coin.wav'),
+  check('check.wav'),
+  uncheck('uncheck.wav'),
+  cheer('cheer.wav'),
+  unlock('unlock.wav'),
+  flag('flag.wav'),
+  chime('chime.wav'),
+  breatheIn('breathe_in.wav'),
+  breatheOut('breathe_out.wav'),
+  drop('drop.wav');
 
   const Sfx(this.file);
   final String file;

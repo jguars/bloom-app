@@ -10,6 +10,7 @@ import '../features/today/flow.dart';
 import '../features/today/today_screen.dart';
 import 'motion.dart';
 import 'reminders.dart';
+import 'sfx.dart';
 import 'theme.dart';
 
 /// The house: five rooms behind one floating tab bar.
@@ -100,7 +101,10 @@ class BloomTabBar extends ConsumerWidget {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      if (r != room) Feel.selectionClick();
+                      if (r != room) {
+                        Feel.selectionClick();
+                        SfxPlayer.instance.play(Sfx.tap, volume: .5);
+                      }
                       ref.read(roomProvider.notifier).go(r);
                     },
                     child: TweenAnimationBuilder<double>(

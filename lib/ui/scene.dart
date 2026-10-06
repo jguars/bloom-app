@@ -18,6 +18,10 @@ class Scene extends StatefulWidget {
     this.fadeHeight = 96,
     this.alignment = Alignment.center,
     this.motes = true,
+    this.character,
+    this.groundAt = .82,
+    this.characterSize = .6,
+    this.characterX = .5,
   });
 
   final String asset;
@@ -26,6 +30,16 @@ class Scene extends StatefulWidget {
   final double fadeHeight;
   final Alignment alignment;
   final bool motes;
+
+  /// A live character (the Rive Clover) standing in the room. It moves with
+  /// the scene's drift so she stays planted on the floor.
+  final Widget? character;
+
+  /// Where her feet touch the floor, as a share of the scene height.
+  final double groundAt;
+
+  /// Her box height as a share of the scene height, and her centre across.
+  final double characterSize, characterX;
 
   @override
   State<Scene> createState() => _SceneState();
@@ -71,7 +85,23 @@ class _SceneState extends State<Scene> with TickerProviderStateMixin {
                 child: Transform.scale(scale: scale, alignment: const Alignment(0, 0.25), child: child),
               );
             },
-            child: Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true),
+            child: widget.character == null
+                ? Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true)
+                : LayoutBuilder(builder: (context, box) {
+                    // The Rive artboard is 600×700 with her feet at y = 620.
+                    final h = box.maxHeight * widget.characterSize;
+                    final w = h * 600 / 700;
+                    return Stack(fit: StackFit.expand, children: [
+                      Image.asset(widget.asset, fit: BoxFit.cover, alignment: widget.alignment, gaplessPlayback: true),
+                      Positioned(
+                        left: box.maxWidth * widget.characterX - w / 2,
+                        top: box.maxHeight * widget.groundAt - h * 620 / 700,
+                        width: w,
+                        height: h,
+                        child: widget.character!,
+                      ),
+                    ]);
+                  }),
           ),
           if (widget.motes && !reduce)
             IgnorePointer(child: AnimatedBuilder(animation: _motes, builder: (context, _) => CustomPaint(painter: _MotesPainter(_motes.value)))),

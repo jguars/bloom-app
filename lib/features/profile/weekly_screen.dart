@@ -7,7 +7,7 @@ import '../../data/profile.dart';
 import '../../data/today.dart';
 import '../../data/weight.dart';
 import '../../ui/bits.dart';
-import '../../ui/clover_mini.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/speech_bubble.dart';
 import '../../ui/weight_chart.dart';
@@ -75,7 +75,7 @@ class WeeklyScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          CloverMini(bodyMass: journal.bodyMass, size: 72),
+          SizedBox(width: 96, height: 112, child: LiveClover(action: w.moves > 0 ? CloverAction.cheer : CloverAction.rest)),
           const SizedBox(width: 8),
           Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 30), child: SpeechBubble(text: line))),
         ]),

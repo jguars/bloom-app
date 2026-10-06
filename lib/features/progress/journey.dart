@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../ui/bits.dart';
 import '../../ui/clover_mini.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/weight_chart.dart';
 
 /// The five flags on one track: reached ones ticked, the next one glowing.
@@ -151,7 +152,7 @@ class JourneyView extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             padding: const EdgeInsets.only(bottom: 4),
             decoration: BoxDecoration(color: BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
-            child: CloverMini(bodyMass: journal.bodyMass, size: 80),
+            child: SizedBox(width: 90, height: 104, child: CloverRive(bodyMass: journal.bodyMass)),
           ),
           const SizedBox(width: 16),
           Expanded(

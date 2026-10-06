@@ -5,6 +5,7 @@ import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
 import '../../data/today.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
@@ -29,6 +30,7 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       SfxPlayer.instance.play(Sfx.cheer);
+      if (widget.reward.flag != null) Future<void>.delayed(const Duration(milliseconds: 900), () => SfxPlayer.instance.play(Sfx.flag));
       final size = MediaQuery.of(context).size;
       for (final (dx, dy, ms, n) in [(.5, .32, 0, 80), (.22, .26, 380, 40), (.78, .28, 700, 40)]) {
         await Future<void>.delayed(Duration(milliseconds: ms == 0 ? 200 : 320));
@@ -45,7 +47,7 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/celebrate.jpg', height: sceneH, fadeHeight: 80)),
+        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/celebrate-empty.jpg', height: sceneH, fadeHeight: 80, groundAt: .84, characterSize: .6, character: const LiveClover(action: CloverAction.cheer))),
         Positioned.fill(
           top: sceneH - 20,
           child: Padding(
@@ -60,6 +62,21 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
                 const SizedBox(width: 12),
                 PopIn(delay: const Duration(milliseconds: 340), child: DayRing(done: widget.reward.doneNow)),
               ]),
+              if (widget.reward.flag != null) ...[
+                const SizedBox(height: 12),
+                PopIn(
+                  delay: const Duration(milliseconds: 900),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(color: BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rPill)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.flag_rounded, size: 18, color: BloomColors.mustardPress),
+                      const SizedBox(width: 6),
+                      Text('New flag: ${widget.reward.flag!.tag} · ${widget.reward.flag!.title}', style: BloomText.button.copyWith(fontSize: 15)),
+                    ]),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               RiseIn(
                 delay: const Duration(milliseconds: 420),

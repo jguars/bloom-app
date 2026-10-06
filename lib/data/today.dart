@@ -78,10 +78,13 @@ class TodayState {
 
 /// What finishing a move earned, so the UI can celebrate each part.
 class Reward {
-  const Reward({required this.paws, required this.bonus, required this.doneNow});
+  const Reward({required this.paws, required this.bonus, required this.doneNow, this.flag});
   final int paws;
   final int bonus;
   final int doneNow;
+
+  /// A journey flag this move just reached, if any.
+  final Milestone? flag;
 }
 
 class TodayNotifier extends Notifier<TodayState> {
@@ -151,8 +154,10 @@ class TodayNotifier extends Notifier<TodayState> {
       clearForced: true,
     );
     _save();
+    final before = ref.read(journalProvider).next;
     ref.read(journalProvider.notifier).logMove(ex);
-    return Reward(paws: ex.paws, bonus: bonus, doneNow: doneNow);
+    final after = ref.read(journalProvider).next;
+    return Reward(paws: ex.paws, bonus: bonus, doneNow: doneNow, flag: before != null && before != after ? before : null);
   }
 
   /// Buys [item] if affordable. Returns false (and changes nothing) if not.

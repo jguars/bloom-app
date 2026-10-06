@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
+import '../../ui/clover_rive.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/scene.dart';
@@ -20,10 +21,17 @@ class ReadyScreen extends StatefulWidget {
 }
 
 class _ReadyScreenState extends State<ReadyScreen> {
+  bool _eyes = false;
+
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 250), () => SfxPlayer.instance.play(Sfx.pop));
+    // She looks up, then asks: eyes open, ears perk, a fist pump.
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      SfxPlayer.instance.play(Sfx.pop);
+      if (mounted) setState(() => _eyes = true);
+      Future<void>.delayed(const Duration(milliseconds: 300), () => SfxPlayer.instance.play(Sfx.purr, volume: .7));
+    });
   }
 
   @override
@@ -33,7 +41,7 @@ class _ReadyScreenState extends State<ReadyScreen> {
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
-        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/ready.jpg', height: sceneH, motion: SceneMotion.hop, fadeHeight: 80)),
+        Positioned(left: 0, right: 0, top: 0, child: Scene(asset: 'assets/scenes/ready-empty.jpg', height: sceneH, fadeHeight: 80, groundAt: .86, characterSize: .66, character: LiveClover(eyesOpen: _eyes))),
         Positioned(
           left: 12,
           top: mq.padding.top + 8,

@@ -44,7 +44,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                   ? 'Lighter than last time!'
                   : 'Noted! Every day’s a little different.';
     });
-    SfxPlayer.instance.play(Sfx.pop);
+    SfxPlayer.instance.play(Sfx.chime);
     Feel.mediumImpact();
     final box = _logKey.currentContext?.findRenderObject() as RenderBox?;
     if (box != null) FxLayer.burst(box.localToGlobal(box.size.center(Offset.zero)), count: 22, power: .6);

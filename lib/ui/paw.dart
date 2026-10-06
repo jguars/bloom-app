@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/motion.dart';
+import '../app/sfx.dart';
 import '../app/theme.dart';
 
 /// The currency glyph: one pad, four toes.
@@ -48,6 +49,7 @@ class PawChipState extends State<PawChip> with SingleTickerProviderStateMixin {
   void didUpdateWidget(PawChip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.paws != widget.paws) {
+      if (widget.paws > oldWidget.paws) SfxPlayer.instance.play(Sfx.coin, volume: .8);
       _from = oldWidget.paws;
       _bump.forward(from: 0);
     }

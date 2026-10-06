@@ -6,10 +6,12 @@ import 'app/gate.dart';
 import 'app/reminders.dart';
 import 'app/sfx.dart';
 import 'app/theme.dart';
+import 'ui/clover_rive.dart';
 import 'ui/fx_layer.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await CloverRive.init();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.dark));
   SfxPlayer.instance.init();
   Reminders.init();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app/feel.dart';
+import '../app/sfx.dart';
 
 import '../app/motion.dart';
 import '../app/theme.dart';
@@ -79,11 +80,13 @@ class _LedgeButtonState extends State<LedgeButton> with TickerProviderStateMixin
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: _enabled ? (_) => _press.forward() : null,
+        onTap: _enabled ? null : () => SfxPlayer.instance.play(Sfx.nope, volume: .6),
         onTapCancel: () => _press.reverse(),
         onTapUp: _enabled
             ? (_) {
                 _press.reverse();
                 Feel.lightImpact();
+                SfxPlayer.instance.play(Sfx.tap, volume: .7);
                 widget.onPressed!();
               }
             : null,
