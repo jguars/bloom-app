@@ -79,7 +79,15 @@ Map<String, Object> _seed() {
   for (var i = 0; i <= 16; i++) {
     final d = start.add(Duration(days: i));
     final moves = [2, 3, 1, 0, 3, 2, 1][i % 7];
-    days[dayKey(d)] = {'m': moves, 's': moves * 140, 'k': i.isEven ? ['m1', 's1', 's2'] : ['m1', 'm2'], 'r': 6, if (i % 3 != 0 && i < 16) 'c': ['all', 'mostly'][i % 2]};
+    days[dayKey(d)] = {
+      'm': moves,
+      's': moves * 140,
+      'k': i.isEven ? ['m1', 's1', 's2'] : ['m1', 'm2'],
+      'r': 6,
+      if (i % 3 != 0 && i < 16) 'c': ['all', 'mostly'][i % 2],
+      // How often water and "no sugary drinks" were logged.
+      'n': {'m1': [6, 8, 5, 3, 7, 8, 4][i % 7], if (i.isEven) 's1': [1, 2, 3, 1][i % 4]},
+    };
   }
   final kg = [92.0, 91.6, 91.7, 91.1, 90.8, 90.2, 89.9];
   return {
@@ -150,12 +158,49 @@ void main() {
       }));
   testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg']));
   testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed()));
-  testWidgets('progress-journey', (t) => _shot(t, 'progress-journey', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
-        await t.tap(find.text('Her journey'));
+  testWidgets('progress-together', (t) => _shot(t, 'progress-together', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
+      }));
+  testWidgets('progress-day', (t) => _shot(t, 'progress-day', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
+        await t.pump(const Duration(milliseconds: 400));
+        await t.tap(find.bySemanticsLabel(RegExp(r'^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day ')).at(4));
+      }));
+  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: {
+        ..._seed(),
+        'bloom.plan.v2': jsonEncode({
+          'day': dayKey(DateTime.now()),
+          'logs': {},
+          'rules': [
+            {'id': 'm1', 'kind': 'more', 'title': 'Drink water', 'icon': 'water', 'goal': 8},
+            {'id': 'm2', 'kind': 'more', 'title': 'Morning walk', 'icon': 'walk'},
+            {'id': 'm3', 'kind': 'more', 'title': '10-minute stretch', 'icon': 'stretch'},
+            {'id': 'm4', 'kind': 'more', 'title': 'Take the stairs', 'icon': 'stairs', 'goal': 4},
+            {'id': 'm5', 'kind': 'more', 'title': 'Vegetables with lunch', 'icon': 'veg'},
+            {'id': 's1', 'kind': 'skip', 'title': 'Sugary drinks', 'icon': 'drink', 'goal': 3},
+            {'id': 's2', 'kind': 'skip', 'title': 'Fast food', 'icon': 'fastfood'},
+          ],
+        }),
+      }, then: (t) async {
+        await t.tap(find.text('Habits'));
+        await t.pump();
         await t.pump(const Duration(milliseconds: 400));
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
       }));
+  testWidgets('progress-weight', (t) => _shot(t, 'progress-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed(), then: (t) async {
+        await t.tap(find.text('Weight'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
+      }));
+  testWidgets('progress-portrait', (t) => _shot(t, 'progress-portrait', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+        await t.tapAt(const Offset(80, 130));
+        await t.pump();
+      }));
   testWidgets('log-weight', (t) => _shot(t, 'log-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed(), then: (t) async {
+        await t.tap(find.text('Weight'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
         await t.drag(find.byType(Scrollable).first, const Offset(0, -900));
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('Log weight'));

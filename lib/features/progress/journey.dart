@@ -4,6 +4,8 @@ import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../ui/bits.dart';
+import '../../ui/ledge_button.dart';
+import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
 
 /// The five flags on one track: reached ones ticked, the next one glowing.
@@ -134,104 +136,131 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
 }
 
 /// "Her journey": Clover now, then each flag with the shape she'll have.
-class JourneyView extends StatelessWidget {
-  const JourneyView({super.key, required this.journal});
+/// The hallway's wooden frame colour, for portraits shown off the wall.
+const _frameWood = Color(0xFFA9683A);
+
+/// A portrait in a little wooden frame: in colour once reached; faded and grey while still to come.
+class FramedPortrait extends StatelessWidget {
+  const FramedPortrait({super.key, required this.index, required this.reached, this.width = 56, this.border = 4});
+  final int index;
+  final bool reached;
+  final double width, border;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: width,
+        padding: EdgeInsets.all(border),
+        decoration: BoxDecoration(
+          color: _frameWood,
+          borderRadius: BorderRadius.circular(border),
+          boxShadow: const [BoxShadow(color: Color(0x33403A1E), blurRadius: 8, offset: Offset(0, 3))],
+        ),
+        child: AspectRatio(
+          aspectRatio: 79 / 91,
+          child: Opacity(
+            opacity: reached ? 1 : .45,
+            child: ColorFiltered(
+              colorFilter: reached ? const ColorFilter.mode(Color(0x00000000), BlendMode.dst) : const ColorFilter.mode(Color(0xFFB8B0A0), BlendMode.saturation),
+              child: Image.asset('assets/scenes/portrait-${index + 1}.webp', fit: BoxFit.cover),
+            ),
+          ),
+        ),
+      );
+}
+
+/// The one flag being worked toward: its frame-to-be, how far along, and the moves left.
+class NextPortraitCard extends StatelessWidget {
+  const NextPortraitCard({super.key, required this.journal, required this.next, this.onTap});
   final Journal journal;
+  final Milestone next;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final next = journal.next;
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      BloomCard(
+    final moves = (next.effort - journal.effort).clamp(0, 999).ceil();
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: cardDecoration(radius: BloomSpace.rMd).copyWith(border: Border.all(color: BloomColors.mustard, width: 2)),
         child: Row(children: [
-          // Her portrait from the last milestone reached (the same one hanging in the hallway).
-          ClipRRect(
-            borderRadius: BorderRadius.circular(BloomSpace.rMd),
-            child: Image.asset(
-              'assets/scenes/portrait-${milestones.where(journal.reached).length.clamp(1, milestones.length)}.webp',
-              width: 96,
-              height: 115,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 16),
+          FramedPortrait(index: milestones.indexOf(next), reached: false),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Eyebrow('Clover now'),
+              const Eyebrow('Next portrait'),
               const SizedBox(height: 2),
-              Text('${(100 - journal.bodyMass).round()}% of the way', style: BloomText.headline),
-              const SizedBox(height: 4),
-              Text('Her shape follows your moves together, never the scale.', style: BloomText.caption.copyWith(fontSize: 14, height: 20 / 14)),
+              Text('${next.tag} · ${next.title}', style: BloomText.headline.copyWith(fontSize: 17, height: 22 / 17)),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: journal.toward(next)),
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, v, _) => LinearProgressIndicator(value: v, minHeight: 8, color: BloomColors.mustard, backgroundColor: BloomColors.paperSunk),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text('About $moves more ${moves == 1 ? 'move' : 'moves'} · planned for ${shortDate(journal.dateOf(next))}', style: BloomText.caption),
             ]),
           ),
         ]),
       ),
-      const SizedBox(height: 16),
-      BloomCard(child: JourneyTrack(journal: journal)),
-      const SizedBox(height: 16),
-      for (final m in milestones) ...[
-        _FlagRow(m: m, journal: journal, isNext: m == next),
-        const SizedBox(height: 12),
-      ],
-      Text('Flags come with effort, not the calendar. A slow week never takes one away.', style: BloomText.caption.copyWith(fontSize: 14), textAlign: TextAlign.center),
-    ]);
+    );
   }
 }
 
-class _FlagRow extends StatelessWidget {
-  const _FlagRow({required this.m, required this.journal, required this.isNext});
-  final Milestone m;
+/// Once every flag is reached: no more portraits, just the two of them keeping at it.
+class KeepGoingCard extends StatelessWidget {
+  const KeepGoingCard({super.key, required this.journal});
   final Journal journal;
-  final bool isNext;
 
   @override
   Widget build(BuildContext context) {
-    final reached = journal.reached(m);
-    final remaining = (m.effort - journal.effort).clamp(0, 999);
-    final moves = remaining.ceil();
+    final since = journal.reachedDate(milestones.last);
+    final moves = since == null ? journal.totalMoves : journal.movesSince(since);
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: cardDecoration(radius: BloomSpace.rMd).copyWith(
-        border: isNext ? Border.all(color: BloomColors.mustard, width: 2) : null,
-      ),
-      child: Row(children: [
-        // Her portrait for this milestone (the same one that hangs in the hallway once it's reached);
-        // flags beyond the next one are faded and grey, still to come.
-        ClipRRect(
-          borderRadius: BorderRadius.circular(BloomSpace.rSm),
-          child: Opacity(
-            opacity: !reached && !isNext ? .5 : 1,
-            child: ColorFiltered(
-              colorFilter: !reached && !isNext ? const ColorFilter.mode(Color(0xFFB8B0A0), BlendMode.saturation) : const ColorFilter.mode(Color(0x00000000), BlendMode.dst),
-              child: Image.asset('assets/scenes/portrait-${milestones.indexOf(m) + 1}.webp', width: 64, height: 77, fit: BoxFit.cover),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${m.tag} · ${m.title}', style: BloomText.headline.copyWith(fontSize: 16, height: 22 / 16)),
-            Text(m.line, style: BloomText.caption),
-            const SizedBox(height: 6),
-            if (reached)
-              const BloomTag(text: 'Reached', icon: Icons.check_rounded)
-            else if (isNext) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: journal.toward(m)),
-                  duration: const Duration(milliseconds: 900),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, v, _) => LinearProgressIndicator(value: v, minHeight: 6, color: BloomColors.mustard, backgroundColor: BloomColors.paperSunk),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text('About $moves more ${moves == 1 ? 'move' : 'moves'} · planned for ${shortDate(journal.dateOf(m))}', style: BloomText.caption),
-            ] else
-              Text('Planned for ${shortDate(journal.dateOf(m))}', style: BloomText.caption),
-          ]),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: BloomColors.forestSoft, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('EVERY FLAG REACHED', style: BloomText.label.copyWith(color: BloomColors.forestPress)),
+        const SizedBox(height: 2),
+        Text('Keep going, together', style: BloomText.headline.copyWith(fontSize: 17)),
+        const SizedBox(height: 4),
+        Text(
+          'The gallery is full. Clover’s staying fit with you. $moves ${moves == 1 ? 'move' : 'moves'} ${since == null ? 'in all' : 'since ${milestones.last.tag}'} · best week: ${journal.bestWeek} moves.',
+          style: BloomText.caption.copyWith(color: BloomColors.forestPress, fontSize: 14, height: 20 / 14),
         ),
       ]),
     );
   }
+}
+
+/// A frame from the hallway, up close: the portrait and its line once reached; what's left for the
+/// next one; and, for later ones, that they come one at a time.
+Future<void> showPortrait(BuildContext context, Journal journal, int index) {
+  final m = milestones[index];
+  final reached = journal.reached(m);
+  final next = journal.next;
+  final when = journal.reachedDate(m);
+  final moves = (m.effort - journal.effort).clamp(0, 999).ceil();
+  final detail = reached
+      ? (when == null ? 'Reached.' : 'Reached ${shortDate(when)}.')
+      : m == next
+          ? 'About $moves more ${moves == 1 ? 'move' : 'moves'} to hang this one. Planned for ${shortDate(journal.dateOf(m))}.'
+          : 'Comes after the ${next!.tag} flag. One frame at a time.';
+  return showBloomSheet<void>(
+    context,
+    (c) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+      Center(child: FramedPortrait(index: index, reached: reached, width: 210, border: 10)),
+      const SizedBox(height: 18),
+      Text('${m.tag} · ${m.title}${reached ? '' : (m == next ? ' · up next' : ' · later')}', style: BloomText.title),
+      const SizedBox(height: 4),
+      if (reached) Text(m.line, style: BloomText.body),
+      Text(detail, style: BloomText.bodyMuted.copyWith(fontSize: 15)),
+      const SizedBox(height: 18),
+      LedgeButton(label: 'Back to the hallway', variant: LedgeVariant.secondary, onPressed: () => Navigator.of(c).pop()),
+    ]),
+  );
 }

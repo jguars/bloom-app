@@ -197,7 +197,11 @@ class PlanNotifier extends Notifier<Plan> {
   }
 
   Future<void> _save() async {
-    ref.read(journalProvider.notifier).logPlan(state.rules.where((r) => state.isKept(r.id)).map((r) => r.id).toList(), state.rules.length);
+    ref.read(journalProvider.notifier).logPlan(
+      state.rules.where((r) => state.isKept(r.id)).map((r) => r.id).toList(),
+      state.rules.length,
+      {for (final r in state.rules) if (state.isKept(r.id)) r.id: state.count(r.id)},
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(state.toJson()));
   }

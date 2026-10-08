@@ -39,6 +39,7 @@ class RoomFrame extends ConsumerStatefulWidget {
     this.topLeft,
     this.titleTrailing,
     this.line2,
+    this.onSceneTap,
   });
 
   final String asset, line, title;
@@ -71,6 +72,12 @@ class RoomFrame extends ConsumerStatefulWidget {
 
   /// Sits on the title's row, at the right (e.g. the Plan's photo check).
   final Widget? titleTrailing;
+
+  /// A tap on the scene (where the panel doesn't cover it), at that point on the scene.
+  final ValueChanged<Offset>? onSceneTap;
+
+  /// How tall a live scene is on this screen.
+  static double sceneHeight(MediaQueryData mq) => (mq.size.height * .47).clamp(340.0, 470.0);
 
   @override
   ConsumerState<RoomFrame> createState() => _RoomFrameState();
@@ -109,12 +116,27 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
     );
   }
 
+  /// Passes taps on the open part of the scene to [RoomFrame.onSceneTap], in the scene's own
+  /// coordinates (the scene sits at the top of the room, whatever the scroll).
+  Widget _sceneTaps(Widget child) {
+    final onTap = widget.onSceneTap;
+    if (onTap == null) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (d) {
+        final box = context.findRenderObject() as RenderBox?;
+        if (box != null) onTap(box.globalToLocal(d.globalPosition));
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final RoomFrame(:asset, :line, :title, :subtitle, :children, :showPaws, :bubbleTop, :bubbleLeft, :pawsKey, :scene) = widget;
     final mq = MediaQuery.of(context);
     if (scene != null) watchVisits();
-    final sceneH = scene != null ? (mq.size.height * .47).clamp(340.0, 470.0) : 300.0 + mq.padding.top * .5;
+    final sceneH = scene != null ? RoomFrame.sceneHeight(mq) : 300.0 + mq.padding.top * .5;
     final head = scene?.headIn(Size(mq.size.width, sceneH), widget.head);
     final paws = ref.watch(todayProvider.select((s) => s.paws));
     return ColoredBox(
@@ -136,10 +158,10 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
+                _sceneTaps(SizedBox(
                   height: sceneH - 70,
                   child: Stack(clipBehavior: Clip.none, children: [_bubble(head, line, sceneH, mq)]),
-                ),
+                )),
                 const _LeadIn(),
                 Container(
                   color: BloomColors.surface,
@@ -200,10 +222,10 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                 // Clover's line rides with the scene, so the panel never slides
                 // under a pinned bubble.
                 SliverToBoxAdapter(
-                  child: SizedBox(
+                  child: _sceneTaps(SizedBox(
                     height: sceneH - 70,
                     child: Stack(clipBehavior: Clip.none, children: [_bubble(head, line, sceneH, mq)]),
-                  ),
+                  )),
                 ),
                 // A soft lead-in so the panel's top edge never shows as a hard line
                 // once it scrolls up over the art.

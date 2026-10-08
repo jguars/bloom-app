@@ -55,7 +55,7 @@ const kCheckInPaws = 5;
 const kUrgePaws = 5, kUrgePawsPerDay = 3;
 
 class DayLog {
-  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0, this.checkIn, this.urges = 0, this.rodeOut = 0});
+  const DayLog({this.moves = 0, this.seconds = 0, this.kept = const [], this.rules = 0, this.checkIn, this.urges = 0, this.rodeOut = 0, this.counts = const {}});
   final int moves, seconds;
 
   /// Cravings met with urge support, and how many passed.
@@ -68,7 +68,12 @@ class DayLog {
   /// How many rules the plan had that day.
   final int rules;
 
-  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules, CheckIn? checkIn, int? urges, int? rodeOut}) => DayLog(
+  /// How many times each plan rule was logged that day (days before counts were kept: once per
+  /// kept rule).
+  final Map<String, int> counts;
+  int count(String id) => counts[id] ?? (kept.contains(id) ? 1 : 0);
+
+  DayLog copyWith({int? moves, int? seconds, List<String>? kept, int? rules, CheckIn? checkIn, int? urges, int? rodeOut, Map<String, int>? counts}) => DayLog(
         moves: moves ?? this.moves,
         seconds: seconds ?? this.seconds,
         kept: kept ?? this.kept,
@@ -76,9 +81,19 @@ class DayLog {
         checkIn: checkIn ?? this.checkIn,
         urges: urges ?? this.urges,
         rodeOut: rodeOut ?? this.rodeOut,
+        counts: counts ?? this.counts,
       );
 
-  Map<String, Object?> toJson() => {'m': moves, 's': seconds, 'k': kept, 'r': rules, if (checkIn != null) 'c': checkIn!.name, if (urges > 0) 'u': urges, if (rodeOut > 0) 'o': rodeOut};
+  Map<String, Object?> toJson() => {
+        'm': moves,
+        's': seconds,
+        'k': kept,
+        'r': rules,
+        if (checkIn != null) 'c': checkIn!.name,
+        if (urges > 0) 'u': urges,
+        if (rodeOut > 0) 'o': rodeOut,
+        if (counts.isNotEmpty) 'n': counts,
+      };
   factory DayLog.fromJson(Map<String, Object?> j) => DayLog(
         moves: (j['m'] as num?)?.toInt() ?? 0,
         seconds: (j['s'] as num?)?.toInt() ?? 0,
@@ -87,16 +102,20 @@ class DayLog {
         checkIn: CheckIn.values.asNameMap()[j['c']],
         urges: (j['u'] as num?)?.toInt() ?? 0,
         rodeOut: (j['o'] as num?)?.toInt() ?? 0,
+        counts: {for (final MapEntry(:key, :value) in ((j['n'] as Map?) ?? const {}).entries) key as String: (value as num).toInt()},
       );
 }
 
 /// The shared history: when the journey began, the effort put in, and a log
 /// per day. Clover's body follows [effort], which only ever goes up.
 class Journal {
-  const Journal({required this.start, required this.today, this.effort = 0, this.days = const {}, this.loaded = false});
+  const Journal({required this.start, required this.today, this.effort = 0, this.days = const {}, this.reachedOn = const {}, this.loaded = false});
   final String start, today;
   final double effort;
   final Map<String, DayLog> days;
+
+  /// The day each flag was reached (by tag), from when this was first recorded.
+  final Map<String, String> reachedOn;
   final bool loaded;
 
   DateTime get startDate => DateTime.parse(start);
@@ -134,6 +153,26 @@ class Journal {
   DayLog get todayLog => days[today] ?? const DayLog();
   int get totalMoves => days.values.fold(0, (a, d) => a + d.moves);
 
+  /// When [m] was reached, if it's known (D0 is the start).
+  DateTime? reachedDate(Milestone m) => m.day == 0 ? startDate : (reachedOn[m.tag] == null ? null : DateTime.parse(reachedOn[m.tag]!));
+
+  /// The last [n] days, ending today.
+  List<DateTime> lastDays([int n = 7]) => [for (var i = n - 1; i >= 0; i--) todayDate.subtract(Duration(days: i))];
+
+  /// The most moves in any Monday-to-Sunday week.
+  int get bestWeek {
+    final weeks = <String, int>{};
+    for (final e in days.entries) {
+      final d = DateTime.parse(e.key);
+      final k = dayKey(d.subtract(Duration(days: d.weekday - 1)));
+      weeks[k] = (weeks[k] ?? 0) + e.value.moves;
+    }
+    return weeks.values.fold(0, (a, b) => a > b ? a : b);
+  }
+
+  /// Moves on or after [from].
+  int movesSince(DateTime from) => days.entries.where((e) => !DateTime.parse(e.key).isBefore(from)).fold(0, (a, e) => a + e.value.moves);
+
   /// Monday to Sunday of the week containing today.
   List<DateTime> get week {
     final t = todayDate;
@@ -141,15 +180,21 @@ class Journal {
     return [for (var i = 0; i < 7; i++) monday.add(Duration(days: i))];
   }
 
-  Journal copyWith({String? start, String? today, double? effort, Map<String, DayLog>? days, bool? loaded}) => Journal(
+  Journal copyWith({String? start, String? today, double? effort, Map<String, DayLog>? days, Map<String, String>? reachedOn, bool? loaded}) => Journal(
         start: start ?? this.start,
         today: today ?? this.today,
         effort: effort ?? this.effort,
         days: days ?? this.days,
+        reachedOn: reachedOn ?? this.reachedOn,
         loaded: loaded ?? this.loaded,
       );
 
-  Map<String, Object?> toJson() => {'start': start, 'effort': effort, 'days': {for (final e in days.entries) e.key: e.value.toJson()}};
+  Map<String, Object?> toJson() => {
+        'start': start,
+        'effort': effort,
+        'days': {for (final e in days.entries) e.key: e.value.toJson()},
+        if (reachedOn.isNotEmpty) 'reached': reachedOn,
+      };
 }
 
 class JournalNotifier extends Notifier<Journal> {
@@ -174,7 +219,14 @@ class JournalNotifier extends Notifier<Journal> {
     final days = <String, DayLog>{
       for (final e in ((j['days'] as Map?) ?? const {}).entries) e.key as String: DayLog.fromJson((e.value as Map).cast<String, Object?>()),
     };
-    state = Journal(start: j['start'] as String? ?? today, today: today, effort: (j['effort'] as num?)?.toDouble() ?? 0, days: days, loaded: true);
+    state = Journal(
+      start: j['start'] as String? ?? today,
+      today: today,
+      effort: (j['effort'] as num?)?.toDouble() ?? 0,
+      days: days,
+      reachedOn: ((j['reached'] as Map?) ?? const {}).cast<String, String>(),
+      loaded: true,
+    );
   }
 
   Future<void> _save() async {
@@ -200,7 +252,10 @@ class JournalNotifier extends Notifier<Journal> {
   void logMove(Exercise ex) {
     final d = _todayLog;
     _put(d.copyWith(moves: d.moves + 1, seconds: d.seconds + ex.seconds));
+    final before = state;
     state = state.copyWith(effort: state.effort + ex.effort);
+    final now = [for (final m in milestones) if (m.day > 0 && !before.reached(m) && state.reached(m)) m.tag];
+    if (now.isNotEmpty) state = state.copyWith(reachedOn: {...state.reachedOn, for (final t in now) t: state.today});
     _save();
   }
 
@@ -221,9 +276,9 @@ class JournalNotifier extends Notifier<Journal> {
     return passed && d.rodeOut < kUrgePawsPerDay;
   }
 
-  /// Today's plan as it stands: which rules are kept, out of how many.
-  void logPlan(List<String> kept, int rules) {
-    _put(_todayLog.copyWith(kept: kept, rules: rules));
+  /// Today's plan as it stands: which rules are kept, out of how many, and how often each was logged.
+  void logPlan(List<String> kept, int rules, [Map<String, int> counts = const {}]) {
+    _put(_todayLog.copyWith(kept: kept, rules: rules, counts: counts));
     _save();
   }
 }
