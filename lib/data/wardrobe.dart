@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'equipment.dart';
 
 /// Where on her an outfit goes; she wears one per slot.
@@ -46,3 +48,19 @@ const decorCatalog = <Decor>[
   Decor(id: 'd_aquarium', name: 'Aquarium', price: 450, blurb: 'Hours of fish TV.', plus: true),
   Decor(id: 'd_record', name: 'Record player', price: 520, blurb: 'Slow songs for slow evenings.', plus: true),
 ];
+
+/// What Clover has on, as the scenes' rig reads it: per slot, the 1-based place of the item among that
+/// slot's outfits in [outfitCatalog] (0 = nothing). Kept current from the saved wardrobe (see BloomApp).
+class Worn {
+  static final current = ValueNotifier<Map<OutfitSlot, int>>(const {});
+
+  /// The rig's number for each slot, from slot name -> outfit id.
+  static Map<OutfitSlot, int> of(Map<String, String> worn) => {
+        for (final slot in OutfitSlot.values)
+          slot: () {
+            final id = worn[slot.name];
+            final i = outfitCatalog.where((o) => o.slot == slot).toList().indexWhere((o) => o.id == id);
+            return i < 0 ? 0 : i + 1;
+          }(),
+      };
+}

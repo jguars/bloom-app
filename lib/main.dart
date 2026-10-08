@@ -15,6 +15,8 @@ import 'data/alarms.dart';
 import 'data/coat.dart';
 import 'data/premium.dart';
 import 'data/profile.dart';
+import 'data/today.dart';
+import 'data/wardrobe.dart';
 import 'features/alarm/ringing_screen.dart';
 import 'app/reminders.dart';
 import 'app/sfx.dart';
@@ -79,6 +81,13 @@ class _BloomAppState extends ConsumerState<BloomApp> {
     }
     ref.listenManual(profileProvider.select((p) => p.coat), (_, _) => cat(), fireImmediately: true);
     ref.listenManual(premiumProvider.select((p) => p.active), (_, _) => cat(), fireImmediately: true);
+    // What she wears shows in every scene. WEAR=o_beanie,o_scarf (a --dart-define) dresses her for checks.
+    const wear = String.fromEnvironment('WEAR');
+    void dress(Map<String, String> worn) {
+      final forced = {for (final o in outfitCatalog) if (wear.split(',').contains(o.id)) o.slot.name: o.id};
+      Worn.current.value = Worn.of(wear.isEmpty ? worn : forced);
+    }
+    ref.listenManual(todayProvider.select((s) => s.worn), (_, w) => dress(w), fireImmediately: true);
     // After the first frame, so startup isn't slowed by it.
     WidgetsBinding.instance.addPostFrameCallback((_) => CloverRive.preload());
     PerfTour.run(_navigator, ref);

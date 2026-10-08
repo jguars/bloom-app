@@ -10,6 +10,7 @@ import 'package:rive/rive.dart' as rive;
 import '../app/idle.dart';
 import '../app/theme.dart';
 import '../data/coat.dart';
+import '../data/wardrobe.dart';
 import 'clover_mini.dart';
 import 'clover_rive.dart';
 
@@ -162,6 +163,9 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   rive.ViewModelInstance? _vm;
   rive.ViewModelInstanceBoolean? _walking, _eyes;
   rive.ViewModelInstanceNumber? _action;
+
+  /// What she's wearing, one number per slot (see [Worn]).
+  final _wear = <OutfitSlot, rive.ViewModelInstanceNumber?>{};
   bool _failed = false;
 
   /// The cat whose scene file this view holds (see [CloverScene.acquire]); released on dispose, or
@@ -173,6 +177,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
     super.initState();
     Idle.idle.addListener(_onIdle);
     Coat.current.addListener(_onCoat);
+    Worn.current.addListener(_dress);
     _start();
   }
 
@@ -190,6 +195,10 @@ class _CloverSceneViewState extends State<CloverSceneView> {
     _eyes?.dispose();
     _vm?.dispose();
     _controller?.dispose();
+    for (final n in _wear.values) {
+      n?.dispose();
+    }
+    _wear.clear();
     _walking = _action = null;
     _eyes = null;
     _vm = null;
@@ -249,6 +258,9 @@ class _CloverSceneViewState extends State<CloverSceneView> {
         _walking = vm.boolean('walking');
         _action = vm.number('action');
         _eyes = vm.boolean('eyesOpen');
+        for (final slot in OutfitSlot.values) {
+          _wear[slot] = vm.number('wear${_rigSlot[slot]}');
+        }
       });
       _push();
     } catch (e) {
@@ -267,6 +279,16 @@ class _CloverSceneViewState extends State<CloverSceneView> {
                 : CloverAction.rest);
     _action?.value = action.value.toDouble();
     _eyes?.value = widget.eyesOpen;
+    _dress();
+  }
+
+  static const _rigSlot = {OutfitSlot.head: 'Head', OutfitSlot.eyes: 'Eyes', OutfitSlot.neck: 'Neck', OutfitSlot.body: 'Top'};
+
+  void _dress() {
+    final worn = Worn.current.value;
+    for (final MapEntry(:key, :value) in _wear.entries) {
+      value?.value = (worn[key] ?? 0).toDouble();
+    }
   }
 
   @override
@@ -279,6 +301,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   void dispose() {
     Idle.idle.removeListener(_onIdle);
     Coat.current.removeListener(_onCoat);
+    Worn.current.removeListener(_dress);
     _still?.dispose();
     _drop();
     super.dispose();
