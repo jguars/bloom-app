@@ -14,7 +14,6 @@ import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../today/flow.dart';
 import '../food/food_check_screen.dart';
-import '../urge/urge_screen.dart';
 import 'rule_sheet.dart';
 
 /// The balcony garden: small daily rules to do more of, and things to skip.
@@ -40,6 +39,7 @@ class PlanScreen extends ConsumerWidget {
       room: Room.plan,
       line: line,
       title: 'Plan',
+      titleTrailing: const _PhotoCheckButton(),
       subtitle: AnimatedSwitcher(
         duration: BloomMotion.base,
         layoutBuilder: (current, previous) => Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
@@ -51,22 +51,6 @@ class PlanScreen extends ConsumerWidget {
         _Section(kind: PlanKind.more, plan: plan),
         const SizedBox(height: 18),
         _Section(kind: PlanKind.skip, plan: plan),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => Navigator.of(context).push(bloomRoute(const UrgeScreen())),
-            icon: const Icon(Icons.waves_rounded, size: 18, color: BloomColors.skyDeep),
-            label: Text('Craving one of these? Ride it out with Clover', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.skyDeep)),
-          ),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => Navigator.of(context).push(bloomRoute(const FoodCheckScreen())),
-            icon: const Icon(Icons.photo_camera_outlined, size: 18, color: BloomColors.skyDeep),
-            label: Text('Is this on my plan? Check a photo', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.skyDeep)),
-          ),
-        ),
         const SizedBox(height: 18),
         LedgeButton(
           label: 'Add a rule',
@@ -289,4 +273,40 @@ class _Check extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "On my plan?": a deep-sky pill with a camera badge, opposite the Plan title. Opens the photo check.
+class _PhotoCheckButton extends StatelessWidget {
+  const _PhotoCheckButton();
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: 'Is this on my plan? Check a photo',
+        child: GestureDetector(
+          onTap: () {
+            Feel.selectionClick();
+            Navigator.of(context).push(bloomRoute(const FoodCheckScreen()));
+          },
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
+            decoration: BoxDecoration(
+              color: BloomColors.skyDeep,
+              borderRadius: BorderRadius.circular(BloomSpace.rPill),
+              boxShadow: const [BoxShadow(color: Color(0x3324485A), blurRadius: 10, offset: Offset(0, 4))],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(color: BloomColors.surface, shape: BoxShape.circle),
+                child: const Icon(Icons.photo_camera_outlined, size: 19, color: BloomColors.skyDeep),
+              ),
+              const SizedBox(width: 8),
+              Text('On my plan?', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.surface)),
+            ]),
+          ),
+        ),
+      );
 }

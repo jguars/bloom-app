@@ -16,6 +16,7 @@ import 'package:bloom/features/paywall/paywall_screen.dart';
 import 'package:bloom/features/plan/plan_screen.dart';
 import 'package:bloom/features/profile/plan_report_screen.dart';
 import 'package:bloom/features/profile/profile_screen.dart';
+import 'package:bloom/features/profile/settings_screen.dart';
 import 'package:bloom/features/profile/weekly_screen.dart';
 import 'package:bloom/features/profile/weight_history_screen.dart';
 import 'package:bloom/features/profile/widget_sheet.dart';
@@ -135,7 +136,7 @@ void main() {
       }));
   testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg']));
   testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed()));
-  testWidgets('progress-journey', (t) => _shot(t, 'progress-journey', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed(), then: (t) async {
+  testWidgets('progress-journey', (t) => _shot(t, 'progress-journey', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
         await t.tap(find.text('Her journey'));
         await t.pump(const Duration(milliseconds: 400));
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
@@ -151,6 +152,7 @@ void main() {
         await t.tap(find.bySemanticsLabel('Decrease today’s weight'));
       }));
   testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom.jpg'], prefs: _seed()));
+  testWidgets('settings', (t) => _shot(t, 'settings', const SettingsScreen(), prefs: _seed()));
   testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom.jpg'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
@@ -230,7 +232,7 @@ void main() {
       'bloom.journal.v1': jsonEncode({'start': dayKey(start), 'effort': 4.0, 'days': {}}),
     });
   });
-  testWidgets('urge', (t) => _shot(t, 'urge', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg']));
+  testWidgets('urge', (t) => _shot(t, 'urge', const UrgeScreen(), assets: ['assets/scenes/craving-surf.jpg']));
   testWidgets('urge-breathe', (t) => _shot(t, 'urge-breathe', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg'], then: (t) async {
         await t.tap(find.text('Breathe with me'));
         for (var i = 0; i < 20; i++) {

@@ -17,7 +17,6 @@ import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/room_light.dart';
 import '../../ui/room_visit.dart';
-import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
@@ -142,27 +141,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
             PawChip(key: _chipKey, paws: s.paws),
           ]),
         ),
-        Positioned(
-          left: 16,
-          top: mq.padding.top + 56,
-          child: Semantics(
-            button: true,
-            label: 'Craving something? Get help from Clover',
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).push(bloomRoute(const UrgeScreen())),
-              child: Container(
-                height: 34,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(color: BloomColors.skyDeep, borderRadius: BorderRadius.circular(BloomSpace.rPill), boxShadow: const [BoxShadow(color: Color(0x332E3826), blurRadius: 10, offset: Offset(0, 4))]),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.waves_rounded, size: 18, color: BloomColors.surface),
-                  const SizedBox(width: 6),
-                  Text('Craving?', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.surface)),
-                ]),
-              ),
-            ),
-          ),
-        ),
         Positioned(left: 140, right: 16, top: sceneH * (missed ? .17 : .33), child: Align(alignment: Alignment.centerLeft, child: ArrivedPop(shown: arrived, child: SpeechBubble(text: _tickled ? 'Hehe! That tickles.' : evening && checkIn != null ? checkIn.reply : missed ? 'I saved you a spot on the mat.' : _lines[s.done.clamp(0, 3)])))),
         Positioned.fill(
           top: sceneH - 40,
@@ -177,7 +155,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
                     Text('Move with Clover', style: BloomText.title),
                   ]),
                 ),
-                DayRing(done: s.done),
+                // Help when a craving hits, beside the day's title (the room's moves are counted by the cards).
+                _CravingButton(onTap: () => Navigator.of(context).push(bloomRoute(const UrgeScreen()))),
               ]),
               const SizedBox(height: 14),
               AnimatedSwitcher(
@@ -428,3 +407,66 @@ class _CheckInRow extends StatelessWidget {
   }
 }
 
+
+/// The round "Craving?" button in Today's header: a deep-sky disc with a wave and its name, and a
+/// soft ring that breathes so it reads as something to tap.
+class _CravingButton extends StatefulWidget {
+  const _CravingButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  State<_CravingButton> createState() => _CravingButtonState();
+}
+
+class _CravingButtonState extends State<_CravingButton> with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: 'Craving something? Ride it out with Clover',
+        child: GestureDetector(
+          onTap: () {
+            Feel.selectionClick();
+            widget.onTap();
+          },
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (context, child) {
+                final t = MediaQuery.of(context).disableAnimations ? 0.0 : _pulse.value;
+                return Stack(alignment: Alignment.center, children: [
+                  Container(
+                    width: 70 + 14 * t,
+                    height: 70 + 14 * t,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: BloomColors.skyDeep.withValues(alpha: .22 * (1 - t))),
+                  ),
+                  child!,
+                ]);
+              },
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: BloomColors.skyDeep,
+                  boxShadow: [BoxShadow(color: Color(0x3324485A), blurRadius: 10, offset: Offset(0, 4))],
+                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.waves_rounded, size: 24, color: BloomColors.surface),
+                  Text('Craving?', style: BloomText.label.copyWith(fontSize: 11, letterSpacing: .2, color: BloomColors.surface)),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      );
+}

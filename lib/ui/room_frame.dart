@@ -36,6 +36,8 @@ class RoomFrame extends ConsumerStatefulWidget {
     this.head,
     this.sceneOverlay,
     this.pinned,
+    this.topLeft,
+    this.titleTrailing,
   });
 
   final String asset, line, title;
@@ -59,6 +61,12 @@ class RoomFrame extends ConsumerStatefulWidget {
   /// When set, the scene and a pane with the title, subtitle and these widgets (e.g. the Shop's
   /// sub-panel switch) stay frozen, and only [children] scroll, sliding away under the pane.
   final List<Widget>? pinned;
+
+  /// A small button pinned to the scene's top-left corner (e.g. the Profile's settings gear).
+  final Widget? topLeft;
+
+  /// Sits on the title's row, at the right (e.g. the Plan's photo check).
+  final Widget? titleTrailing;
 
   @override
   ConsumerState<RoomFrame> createState() => _RoomFrameState();
@@ -134,7 +142,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      RiseIn(child: Text(title, style: BloomText.display)),
+                      RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?widget.titleTrailing])),
                       const SizedBox(height: 2),
                       RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
                       const SizedBox(height: 16),
@@ -200,7 +208,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        RiseIn(child: Text(title, style: BloomText.display)),
+                        RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?widget.titleTrailing])),
                         const SizedBox(height: 2),
                         RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
                         const SizedBox(height: 16),
@@ -211,6 +219,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                 ),
               ],
             ),
+          if (widget.topLeft case final tl?) Positioned(left: 16, top: mq.padding.top + 12, child: tl),
           if (showPaws)
             Positioned(
               right: 16,

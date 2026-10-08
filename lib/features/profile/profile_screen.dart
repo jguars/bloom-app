@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,18 +15,15 @@ import '../../ui/window_sky.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
-import '../../app/reminders.dart';
-import '../onboarding/onboarding_flow.dart' show pickTime;
 import '../paywall/paywall_screen.dart';
 import '../today/flow.dart';
 import 'plan_report_screen.dart';
+import 'settings_screen.dart';
 import 'week_stats.dart';
-import '../alarm/alarms_screen.dart';
 import 'weekly_screen.dart';
-import 'widget_sheet.dart';
 import 'weight_history_screen.dart';
 
-/// The bedroom: you and Clover, this week, reports and settings.
+/// The bedroom: you and Clover, this week and reports; settings sit behind the gear.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -44,13 +40,7 @@ class ProfileScreen extends ConsumerWidget {
     final best = week.bestRule(plan.rules);
     final hour = DateTime.now().hour;
     final line = hour >= 20 || hour < 5 ? 'Story time, then sleep.' : (hour < 11 ? 'Five more minutes…' : 'My comfy corner!');
-    final update = ref.read(profileProvider.notifier).update;
     final premium = ref.watch(premiumProvider);
-    Future<void> reminder(bool morning, bool on) async {
-      if (on && !await Reminders.requestPermission()) return;
-      final p = ref.read(profileProvider);
-      update(morning ? p.copyWith(morning: on) : p.copyWith(evening: on));
-    }
 
     return RoomFrame(
       asset: 'assets/scenes/bedroom.jpg',
@@ -58,6 +48,7 @@ class ProfileScreen extends ConsumerWidget {
       action: CloverAction.bedroomTidy,
       room: Room.profile,
       sceneOverlay: const BedroomWindow(),
+      topLeft: const _SettingsButton(),
       line: line,
       title: '${profile.displayName} & ${profile.catName}',
       subtitle: Row(children: [
@@ -100,62 +91,6 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(bloomRoute(const PlanReportScreen())),
             last: true,
           ),
-        ]),
-        const SizedBox(height: 20),
-        const Eyebrow('Settings'),
-        const SizedBox(height: 10),
-        GroupCard(children: [
-          GroupRow(
-            title: 'Morning reminder',
-            caption: profile.morning ? '${clockText(profile.morningAt)} · tap to change' : 'A look at today’s plan',
-            onTap: profile.morning ? () => pickTime(context, profile.morningAt, (m) => update(ref.read(profileProvider).copyWith(morningAt: m))) : null,
-            trailing: BloomToggle(label: 'Morning reminder', value: profile.morning, onChanged: (v) => reminder(true, v)),
-          ),
-          GroupRow(
-            title: 'Evening reminder',
-            caption: profile.evening ? '${clockText(profile.eveningAt)} · tap to change' : 'How did today go?',
-            onTap: profile.evening ? () => pickTime(context, profile.eveningAt, (m) => update(ref.read(profileProvider).copyWith(eveningAt: m))) : null,
-            trailing: BloomToggle(label: 'Evening reminder', value: profile.evening, onChanged: (v) => reminder(false, v)),
-          ),
-          GroupRow(
-            title: 'Wake-up alarms',
-            caption: 'Clover wakes you, then stretches with you',
-            onTap: () => Navigator.of(context).push(bloomRoute(const AlarmsScreen())),
-          ),
-          GroupRow(
-            title: 'Home-screen widgets',
-            caption: 'Clover and today’s moves at a glance',
-            onTap: () => showBloomSheet<void>(context, (c) => const WidgetSheet()),
-          ),
-          GroupRow(
-            title: 'Sounds',
-            caption: 'Pops, ticks and cheers',
-            trailing: BloomToggle(label: 'Sounds', value: profile.sound, onChanged: (v) => update(profile.copyWith(sound: v))),
-          ),
-          GroupRow(
-            title: 'Haptics',
-            caption: 'Little taps on wins',
-            trailing: BloomToggle(label: 'Haptics', value: profile.haptics, onChanged: (v) => update(profile.copyWith(haptics: v))),
-          ),
-          GroupRow(
-            title: 'Units',
-            caption: profile.pounds ? 'Pounds' : 'Kilograms',
-            trailing: SizedBox(
-              width: 120,
-              child: SegmentedSwitch(labels: const ['kg', 'lb'], index: profile.pounds ? 1 : 0, onChanged: (i) => update(profile.copyWith(pounds: i == 1))),
-            ),
-          ),
-          GroupRow(title: 'Account', caption: 'Guest · everything stays on this phone', last: !kDebugMode),
-          if (kDebugMode)
-            GroupRow(
-              title: 'Replay welcome',
-              caption: 'Debug only · runs onboarding again',
-              onTap: () {
-                ref.read(premiumProvider.notifier).reset();
-                update(ref.read(profileProvider).copyWith(onboarded: false));
-              },
-              last: true,
-            ),
         ]),
         const SizedBox(height: 20),
         Container(
@@ -261,4 +196,28 @@ class _Field extends StatelessWidget {
           ),
         ),
       ]);
+}
+
+/// The round gear on the bedroom's top-left corner: opens Settings.
+class _SettingsButton extends StatelessWidget {
+  const _SettingsButton();
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: 'Settings',
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).push(bloomRoute(const SettingsScreen())),
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: BloomColors.surface,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Color(0x292E3826), blurRadius: 12, offset: Offset(0, 4))],
+            ),
+            child: const Icon(Icons.settings_outlined, color: BloomColors.ink, size: 24),
+          ),
+        ),
+      );
 }

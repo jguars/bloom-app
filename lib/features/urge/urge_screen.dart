@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +9,6 @@ import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/today.dart';
-import '../../ui/clover_rive.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
@@ -123,22 +121,16 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
         _Stage.done => 'You did that! Proud of you.',
       };
 
-  CloverAction get _action => switch (_stage) {
-        _Stage.doing => switch (_task!) {
-            UrgeTask.walk => CloverAction.march,
-            UrgeTask.room => CloverAction.hop,
-            UrgeTask.breathe => _inhale ? CloverAction.reach : CloverAction.rest,
-            UrgeTask.water => CloverAction.rest,
-          },
-        _Stage.done => CloverAction.cheer,
-        _ => CloverAction.rest,
-      };
+  // Just left of her cheek in craving-surf.jpg (1100x842), mapped through the scene's cover fit.
+  static const _art = Size(1100, 842), _head = Offset(478, 400);
+  double _k(double w, double h) => w / _art.width > h / _art.height ? w / _art.width : h / _art.height;
+  double _headX(double w, double h) => (w - _art.width * _k(w, h)) / 2 + _head.dx * _k(w, h);
+  double _headY(double w, double h) => (h - _art.height * _k(w, h)) / 2 + _head.dy * _k(w, h);
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final sceneH = (mq.size.height * .46).clamp(320.0, 420.0);
-    final walk = _stage == _Stage.doing && _task == UrgeTask.walk;
     return Scaffold(
       backgroundColor: BloomColors.surface,
       body: Stack(fit: StackFit.expand, children: [
@@ -146,20 +138,14 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
           left: 0,
           right: 0,
           top: 0,
-          child: AnimatedSwitcher(
-            duration: BloomMotion.slow,
-            child: Scene(
-              key: ValueKey(walk),
-              asset: walk ? 'assets/scenes/march-empty.jpg' : 'assets/scenes/ready-empty.jpg',
-              height: sceneH,
-              fadeHeight: 80,
-              groundAt: walk ? .8 : .86,
-              characterSize: .62,
-              character: Stack(fit: StackFit.expand, children: [
-                if (_stage == _Stage.doing && _task == UrgeTask.breathe) _BreathRing(inhale: _inhale),
-                LiveClover(action: _action),
-              ]),
-            ),
+          // Clover riding the craving out like a wave (painted). The sea bobs gently; on the
+          // breathing task it swells with each breath.
+          child: Scene(
+            asset: 'assets/scenes/craving-surf.jpg',
+            height: sceneH,
+            fadeHeight: 80,
+            motion: _stage == _Stage.doing && _task == UrgeTask.breathe ? SceneMotion.beat : SceneMotion.drift,
+            motes: false,
           ),
         ),
         Positioned(
@@ -179,7 +165,25 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
             ),
           ),
         ),
-        Positioned(left: 70, right: 16, top: mq.padding.top + 64, child: Align(alignment: Alignment.centerRight, child: SpeechBubble(text: _line, tailRight: true))),
+        // Her line hangs beside her head, its tail tipping toward her (like the rooms' bubbles).
+        Positioned(
+          left: 16,
+          right: mq.size.width - _headX(mq.size.width, sceneH) + 4,
+          bottom: mq.size.height - _headY(mq.size.width, sceneH) + 4,
+          child: IgnorePointer(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(_line),
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 520),
+                curve: BloomMotion.pop,
+                builder: (context, v, child) => Opacity(opacity: v.clamp(0.0, 1.0), child: Transform.scale(scale: .6 + .4 * v, alignment: Alignment.bottomRight, child: child)),
+                child: SpeechBubble(text: _line, tailRight: true, maxWidth: 200),
+              ),
+            ),
+          ),
+        ),
         Positioned.fill(
           top: sceneH - 20,
           child: Padding(
@@ -289,40 +293,4 @@ class _TaskTile extends StatelessWidget {
           ),
         ),
       );
-}
-
-/// A soft ring behind Clover that swells on the in-breath.
-class _BreathRing extends StatelessWidget {
-  const _BreathRing({required this.inhale});
-  final bool inhale;
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(end: inhale ? 1 : 0),
-        duration: const Duration(seconds: 5),
-        curve: Curves.easeInOut,
-        builder: (context, v, _) => CustomPaint(painter: _RingPainter(v)),
-      );
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter(this.v);
-  final double v;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2, size.height * .55);
-    final r = size.width * (.32 + .22 * v);
-    canvas.drawCircle(c, r, Paint()..color = BloomColors.sky.withValues(alpha: .55));
-    canvas.drawCircle(c, r, Paint()
-      ..color = BloomColors.skyDeep.withValues(alpha: .35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3);
-    for (var i = 0; i < 8; i++) {
-      final a = i * math.pi / 4 + v * .6;
-      canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * (r + 10), 3, Paint()..color = BloomColors.skyDeep.withValues(alpha: .3 * v));
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) => old.v != v;
 }

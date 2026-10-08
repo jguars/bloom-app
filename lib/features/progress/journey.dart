@@ -4,7 +4,6 @@ import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../ui/bits.dart';
-import '../../ui/clover_rive.dart';
 import '../../ui/weight_chart.dart';
 
 /// The five flags on one track: reached ones ticked, the next one glowing.
@@ -145,13 +144,15 @@ class JourneyView extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       BloomCard(
         child: Row(children: [
-          Container(
-            width: 96,
-            height: 104,
-            alignment: Alignment.bottomCenter,
-            padding: const EdgeInsets.only(bottom: 4),
-            decoration: BoxDecoration(color: BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
-            child: SizedBox(width: 90, height: 104, child: CloverRive(bodyMass: journal.bodyMass)),
+          // Her portrait from the last milestone reached (the same one hanging in the hallway).
+          ClipRRect(
+            borderRadius: BorderRadius.circular(BloomSpace.rMd),
+            child: Image.asset(
+              'assets/scenes/portrait-${milestones.where(journal.reached).length.clamp(1, milestones.length)}.webp',
+              width: 96,
+              height: 115,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

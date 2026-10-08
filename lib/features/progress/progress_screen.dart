@@ -114,11 +114,14 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 : KeyedSubtree(key: const ValueKey(1), child: JourneyView(journal: journal)),
           ),
         ),
-        const SizedBox(height: 20),
-        KeyedSubtree(
-          key: _logKey,
-          child: LedgeButton(label: 'Log weight', leading: const Icon(Icons.monitor_weight_outlined, color: BloomColors.onForest), onPressed: _openSheet),
-        ),
+        // Logging belongs to the weight panel only.
+        if (_view == 0) ...[
+          const SizedBox(height: 20),
+          KeyedSubtree(
+            key: _logKey,
+            child: LedgeButton(label: 'Log weight', leading: const Icon(Icons.monitor_weight_outlined, color: BloomColors.onForest), onPressed: _openSheet),
+          ),
+        ],
       ],
     );
   }
@@ -200,14 +203,6 @@ class _WeightView extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: StatCard(value: '${journal.totalMoves} ${journal.totalMoves == 1 ? 'move' : 'moves'}', label: 'Done together')),
       ]),
-      const SizedBox(height: 12),
-      BloomCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Eyebrow('Her journey'),
-          const SizedBox(height: 12),
-          JourneyTrack(journal: journal),
-        ]),
-      ),
     ]);
   }
 }
