@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'idle.dart';
 import 'perf_probe.dart';
 
 import 'package:flutter/material.dart';
@@ -45,7 +46,13 @@ class Shell extends ConsumerWidget {
           for (final r in Room.values)
             Offstage(
               offstage: r != room,
-              child: TickerMode(enabled: r == room, child: _roomFor(r)),
+              // (ShellScope tells the rooms they live in the tab shell, so hidden ones can drop their scene.)
+              // Hidden rooms pause, and so does the open one once the phone sits untouched (Idle).
+              child: ValueListenableBuilder(
+                valueListenable: Idle.idle,
+                builder: (context, idle, child) => TickerMode(enabled: r == room && !idle, child: child!),
+                child: ShellScope(child: _roomFor(r)),
+              ),
             ),
           Positioned(
             left: 16,
@@ -299,4 +306,15 @@ class _ReminderRouterState extends ConsumerState<_ReminderRouter> {
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
+/// Marks the rooms living in the tab [Shell]. Only there does a room's tab ever go hidden (and drop
+/// its live scene); a room shown on its own (as in the screenshot tests) is always on show.
+class ShellScope extends InheritedWidget {
+  const ShellScope({super.key, required super.child});
+
+  static bool of(BuildContext context) => context.getInheritedWidgetOfExactType<ShellScope>() != null;
+
+  @override
+  bool updateShouldNotify(ShellScope oldWidget) => false;
 }

@@ -147,7 +147,7 @@ class _AlarmSheetState extends ConsumerState<AlarmSheet> {
   }
 
   Future<void> _preview(AlarmTune t) async {
-    final player = _player ??= AudioPlayer();
+    final player = _player ??= (AudioPlayer()..positionUpdater = null); // positions unused; the tracker ticks every frame
     if (_playing == t) {
       await player.stop();
       setState(() => _playing = null);

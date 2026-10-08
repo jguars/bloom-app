@@ -39,6 +39,7 @@ class PlanScreen extends ConsumerWidget {
       room: Room.plan,
       line: line,
       title: 'Plan',
+      line2: 'Small swaps add up. You’ve got this.',
       titleTrailing: const _PhotoCheckButton(),
       subtitle: AnimatedSwitcher(
         duration: BloomMotion.base,

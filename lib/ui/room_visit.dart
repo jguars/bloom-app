@@ -30,6 +30,10 @@ mixin RoomVisit<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     });
   }
 
+  /// Whether this room's tab is the one on show. Hidden rooms drop their live scene (it holds the
+  /// decoded room and a running animation); each visit rebuilds it from the empty room anyway.
+  bool get onShow => ref.watch(roomProvider) == visitRoom || !ShellScope.of(context);
+
   /// Call at the top of build: starts the first visit and a new one each time the tab is opened again.
   void watchVisits() {
     if (!_started) {

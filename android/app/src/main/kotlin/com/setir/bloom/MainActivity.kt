@@ -10,33 +10,34 @@ import android.view.ViewGroup
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity() {
-    private var maxRate = 60f
+    private var maxRate = 60f  // the rate asked for (named before the switch to 60 Hz)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        preferHighRefreshRate()
+        preferSteadyRefreshRate()
     }
 
     override fun onPostResume() {
         super.onPostResume()
-        // Flutter draws into a SurfaceView; vote for the fast rate on it too.
+        // Flutter draws into a SurfaceView; vote for the same rate on it too.
         // MIUI's adaptive refresh follows per-surface votes, not just the window's.
         findSurface(window.decorView)?.let { voteOn(it) }
     }
 
     /**
-     * Ask for the panel's fastest mode (e.g. 120 Hz). Without this, MIUI and
-     * other skins keep apps that don't ask at 60 Hz, which feels choppy next
-     * to the rest of the phone.
+     * Ask for a steady 60 Hz. Clover's scenes animate every frame, so at 120 Hz
+     * the phone did twice the work for motion that looks the same, which kept a
+     * CPU core busy and heated the phone. (Pinning a rate also stops MIUI's
+     * adaptive refresh from bouncing between modes.)
      */
-    private fun preferHighRefreshRate() {
+    private fun preferSteadyRefreshRate() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         @Suppress("DEPRECATION")
         val display = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else windowManager.defaultDisplay) ?: return
         val current = display.mode
         val best = display.supportedModes
             .filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
-            .maxByOrNull { it.refreshRate } ?: return
+            .minByOrNull { kotlin.math.abs(it.refreshRate - 60f) } ?: return
         maxRate = best.refreshRate
         window.attributes = window.attributes.also {
             it.preferredDisplayModeId = best.modeId

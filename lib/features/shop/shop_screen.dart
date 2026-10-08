@@ -51,6 +51,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       room: Room.shop,
       line: line,
       title: 'Shop',
+      line2: 'Every move we do earns us paws.',
       subtitle: Text('Gear unlocks new moves for you both.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       showPaws: true,
       bubbleLeft: 16,

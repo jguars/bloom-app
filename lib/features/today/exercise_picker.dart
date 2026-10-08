@@ -14,28 +14,36 @@ import '../../ui/room_frame.dart';
 /// moves from owned gear can be picked; the rest show which gear unlocks them.
 /// Returns the chosen move, already set as Today's current one so finishing
 /// it credits the right paws.
-Future<Exercise?> showExercisePicker(BuildContext context, WidgetRef ref) async {
-  final ex = await showBloomSheet<Exercise>(context, (context) => const _ExercisePicker());
+///
+/// [only] limits the list (e.g. the simple moves offered just for fun); [subtitle] says what picking
+/// one earns.
+Future<Exercise?> showExercisePicker(BuildContext context, WidgetRef ref, {List<Exercise>? only, String? subtitle, double pawShare = 1}) async {
+  final ex = await showBloomSheet<Exercise>(context, (context) => _ExercisePicker(only: only, subtitle: subtitle, pawShare: pawShare));
   if (ex != null) ref.read(todayProvider.notifier).pickExercise(ex);
   return ex;
 }
 
 class _ExercisePicker extends ConsumerWidget {
-  const _ExercisePicker();
+  const _ExercisePicker({this.only, this.subtitle, this.pawShare = 1});
+  final List<Exercise>? only;
+  final String? subtitle;
+
+  /// Share of a move's paws picking it earns (half for bonus moves, none just for fun).
+  final double pawShare;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(todayProvider);
-    final open = [...dailyExercises, ...gearExercises.where((e) => s.owns(e.equipment!))];
-    final locked = gearExercises.where((e) => !s.owns(e.equipment!)).toList();
+    final open = only ?? [...dailyExercises, ...gearExercises.where((e) => s.owns(e.equipment!))];
+    final locked = only != null ? const <Exercise>[] : gearExercises.where((e) => !s.owns(e.equipment!)).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       Text('Pick a move', style: BloomText.title),
-      Text('Clover will do it with you.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
+      Text(subtitle ?? 'Clover will do it with you.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       const SizedBox(height: 12),
       ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * .62),
         child: ListView(shrinkWrap: true, padding: EdgeInsets.zero, children: [
-          for (final e in open) _MoveRow(ex: e, onTap: () {
+          for (final e in open) _MoveRow(ex: e, pawShare: pawShare, onTap: () {
             Feel.selectionClick();
             Navigator.of(context).pop(e);
           }),
@@ -50,8 +58,9 @@ class _ExercisePicker extends ConsumerWidget {
 }
 
 class _MoveRow extends StatelessWidget {
-  const _MoveRow({required this.ex, this.onTap, this.lockedBy});
+  const _MoveRow({required this.ex, this.onTap, this.lockedBy, this.pawShare = 1});
   final Exercise ex;
+  final double pawShare;
   final VoidCallback? onTap;
   final String? lockedBy;
 
@@ -97,9 +106,12 @@ class _MoveRow extends StatelessWidget {
                 if (locked)
                   const SizedBox(width: 42, child: Icon(Icons.lock_outline_rounded, size: 20, color: BloomColors.inkMuted))
                 else ...[
-                  const PawIcon(size: 16),
-                  // Fixed width keeps the tags lined up for 1- and 2-digit paws.
-                  SizedBox(width: 26, child: Text('${ex.paws}', textAlign: TextAlign.right, style: BloomText.number.copyWith(fontSize: 15))),
+                  if (pawShare > 0) ...[
+                    const PawIcon(size: 16),
+                    // Fixed width keeps the tags lined up for 1- and 2-digit paws.
+                    SizedBox(width: 26, child: Text('${(ex.paws * pawShare).ceil()}', textAlign: TextAlign.right, style: BloomText.number.copyWith(fontSize: 15))),
+                  ] else
+                    const SizedBox(width: 42),
                 ],
               ]),
             ),

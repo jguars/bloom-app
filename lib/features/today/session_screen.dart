@@ -69,7 +69,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
     _ticker.stop();
     SfxPlayer.instance.play(Sfx.done);
     Feel.heavyImpact();
-    final reward = ref.read(todayProvider.notifier).finish();
+    final reward = ref.read(todayProvider.notifier).finish(widget.ex);
     Navigator.of(context).pushReplacement(bloomRoute(CelebrationScreen(ex: widget.ex, reward: reward)));
   }
 

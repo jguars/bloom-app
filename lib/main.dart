@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/gate.dart';
+import 'app/idle.dart';
 import 'data/alarms.dart';
 import 'features/alarm/ringing_screen.dart';
 import 'app/reminders.dart';
@@ -20,6 +21,9 @@ import 'ui/fx_layer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Idle.start();
+  // Room art is large; keep decoded images to a modest budget so memory stays low on smaller phones.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 60 << 20;
   // Portrait only: every room is composed for a tall screen.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await CloverRive.init();

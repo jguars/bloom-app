@@ -85,6 +85,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       line: line,
       bubbleLeft: 150,
       title: 'Progress',
+      line2: 'Every flag we reach gets a portrait here!',
       subtitle: Text(subtitle, style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       children: [
         SegmentedSwitch(

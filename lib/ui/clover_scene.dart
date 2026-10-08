@@ -1,9 +1,12 @@
 import 'dart:io' show Platform;
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:rive/rive.dart' as rive;
 
+import '../app/idle.dart';
 import '../app/theme.dart';
 import 'clover_mini.dart';
 import 'clover_rive.dart';
@@ -81,15 +84,42 @@ enum CloverScene {
   /// Shown under widget tests, where Rive can't draw.
   final String fallback;
 
+  // Each scene holds its painted room and the whole rig, decoded: tens of MB. Only the ones on show
+  // stay loaded, plus the [_keep] most recently closed (so flipping between two tabs is instant);
+  // older ones are freed.
+  static const _keep = 2;
   static final _files = <CloverScene, Future<rive.File?>>{};
+  static final _users = <CloverScene, int>{};
+  static final _recent = <CloverScene>[];
+
   Future<rive.File?> load() => _files[this] ??= rive.File.asset(asset, riveFactory: riveFactory);
 
-  /// Decodes every scene ahead of time so opening one doesn't stall.
-  static void preloadAll() {
-    for (final s in values) {
-      s.load();
+  /// A view starts showing this scene: load it (or reuse it) and keep it while in use.
+  Future<rive.File?> acquire() {
+    _users[this] = (_users[this] ?? 0) + 1;
+    _recent.remove(this);
+    return load();
+  }
+
+  /// A view stopped showing it; free the oldest scenes nobody is showing.
+  void release() {
+    final n = (_users[this] ?? 1) - 1;
+    if (n > 0) {
+      _users[this] = n;
+      return;
+    }
+    _users.remove(this);
+    _recent
+      ..remove(this)
+      ..add(this);
+    while (_recent.length > _keep) {
+      final old = _recent.removeAt(0);
+      _files.remove(old)?.then((f) => f?.dispose());
     }
   }
+
+  /// Decodes the first room shown (Today) ahead of time so opening the app doesn't stall.
+  static void preloadAll() => today.load();
 }
 
 /// Plays a [CloverScene] filling [height] (anchored per scene, so her feet
@@ -126,10 +156,41 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   rive.ViewModelInstanceNumber? _action;
   bool _failed = false;
 
+  /// Holding this scene's file (see [CloverScene.acquire]); released on dispose.
+  bool _acquired = false;
+
   @override
   void initState() {
     super.initState();
+    Idle.idle.addListener(_onIdle);
     _start();
+  }
+
+  // Rive's clock ignores TickerMode (and pausing the controller doesn't stop its state machine asking
+  // for frames), so when the app goes idle the scene is frozen on a still of its last frame and the
+  // live view leaves the tree; a touch puts it back, carrying on where it was.
+  final _artKey = GlobalKey();
+  ui.Image? _still;
+
+  Future<void> _onIdle() async {
+    if (!Idle.idle.value) {
+      final old = _still;
+      if (old != null) {
+        setState(() => _still = null);
+        WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+      }
+      return;
+    }
+    final box = _artKey.currentContext?.findRenderObject();
+    if (box is! RenderRepaintBoundary || !mounted) return;
+    try {
+      final img = await box.toImage(pixelRatio: MediaQuery.of(context).devicePixelRatio);
+      if (mounted && Idle.idle.value) {
+        setState(() => _still = img);
+      } else {
+        img.dispose();
+      }
+    } catch (_) {}
   }
 
   Future<void> _start() async {
@@ -139,8 +200,13 @@ class _CloverSceneViewState extends State<CloverSceneView> {
       return;
     }
     try {
-      final file = await widget.scene.load();
-      if (file == null || !mounted) return;
+      final file = await widget.scene.acquire();
+      if (!mounted) {
+        widget.scene.release(); // closed while loading
+        return;
+      }
+      _acquired = true;
+      if (file == null) return;
       final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName(widget.scene.artboard), stateMachineSelector: rive.StateMachineSelector.byDefault());
       // The scene and the Clover nested in it share CloverRigVM.
       final vm = c.dataBind(rive.DataBind.auto());
@@ -178,11 +244,14 @@ class _CloverSceneViewState extends State<CloverSceneView> {
 
   @override
   void dispose() {
+    Idle.idle.removeListener(_onIdle);
+    _still?.dispose();
     _walking?.dispose();
     _action?.dispose();
     _eyes?.dispose();
     _vm?.dispose();
     _controller?.dispose();
+    if (_acquired) widget.scene.release();
     super.dispose();
   }
 
@@ -198,7 +267,10 @@ class _CloverSceneViewState extends State<CloverSceneView> {
     } else if (c == null) {
       art = const ColoredBox(color: Color(0xFFF8F0D9));
     } else {
-      art = rive.RiveWidget(controller: c, fit: rive.Fit.cover, alignment: widget.scene.alignment);
+      final still = _still;
+      art = still != null
+          ? RawImage(image: still, fit: BoxFit.fill)
+          : RepaintBoundary(key: _artKey, child: rive.RiveWidget(controller: c, fit: rive.Fit.cover, alignment: widget.scene.alignment));
     }
     return SizedBox(
       height: widget.height,

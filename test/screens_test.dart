@@ -151,9 +151,9 @@ void main() {
         await t.tap(find.bySemanticsLabel('Decrease today’s weight'));
         await t.tap(find.bySemanticsLabel('Decrease today’s weight'));
       }));
-  testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom.jpg'], prefs: _seed()));
+  testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed()));
   testWidgets('settings', (t) => _shot(t, 'settings', const SettingsScreen(), prefs: _seed()));
-  testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom.jpg'], prefs: _seed(), then: (t) async {
+  testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
   testWidgets('weekly', (t) => _shot(t, 'weekly', const WeeklyScreen(), prefs: _seed()));

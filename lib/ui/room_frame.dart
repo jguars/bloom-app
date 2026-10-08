@@ -38,9 +38,13 @@ class RoomFrame extends ConsumerStatefulWidget {
     this.pinned,
     this.topLeft,
     this.titleTrailing,
+    this.line2,
   });
 
   final String asset, line, title;
+
+  /// A second thing Clover says, in turn with [line].
+  final String? line2;
   final Widget subtitle;
   final List<Widget> children;
   final bool showPaws;
@@ -80,7 +84,11 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
   /// whichever side of her has room, never running off the screen; otherwise it's pinned top-left.
   Widget _bubble(Offset? head, String line, double sceneH, MediaQueryData mq) {
     if (head == null) {
-      return Positioned(left: widget.bubbleLeft, top: mq.padding.top + widget.bubbleTop, child: IgnorePointer(child: SpeechBubble(text: line)));
+      return Positioned(
+        left: widget.bubbleLeft,
+        top: mq.padding.top + widget.bubbleTop,
+        child: IgnorePointer(child: SpeechBubble(text: line, alternate: widget.line2)),
+      );
     }
     final bottom = sceneH - 70 - head.dy + 6;
     final onLeft = head.dx > mq.size.width * .5;
@@ -94,7 +102,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
           child: ArrivedPop(
             shown: arrived,
             alignment: onLeft ? Alignment.bottomRight : Alignment.bottomLeft,
-            child: SpeechBubble(text: line, tailRight: onLeft),
+            child: SpeechBubble(text: line, alternate: widget.line2, tailRight: onLeft),
           ),
         ),
       ),
@@ -118,7 +126,9 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
             left: 0,
             right: 0,
             top: 0,
-            child: scene != null
+            child: scene != null && !onShow
+                ? SizedBox(height: sceneH)
+                : scene != null
                 ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, fadeHeight: 72)
                 : Scene(asset: asset, height: sceneH, fadeHeight: 62),
           ),
@@ -128,12 +138,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
               children: [
                 SizedBox(
                   height: sceneH - 70,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      _bubble(head, line, sceneH, mq),
-                    ],
-                  ),
+                  child: Stack(clipBehavior: Clip.none, children: [_bubble(head, line, sceneH, mq)]),
                 ),
                 const _LeadIn(),
                 Container(
@@ -142,7 +147,14 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?widget.titleTrailing])),
+                      RiseIn(
+                        child: Row(
+                          children: [
+                            Expanded(child: Text(title, style: BloomText.display)),
+                            ?widget.titleTrailing,
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
                       const SizedBox(height: 16),
@@ -190,12 +202,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: sceneH - 70,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _bubble(head, line, sceneH, mq),
-                      ],
-                    ),
+                    child: Stack(clipBehavior: Clip.none, children: [_bubble(head, line, sceneH, mq)]),
                   ),
                 ),
                 // A soft lead-in so the panel's top edge never shows as a hard line
@@ -208,7 +215,14 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?widget.titleTrailing])),
+                        RiseIn(
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(title, style: BloomText.display)),
+                              ?widget.titleTrailing,
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
                         const SizedBox(height: 16),

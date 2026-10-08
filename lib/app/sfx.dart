@@ -33,7 +33,12 @@ class SfxPlayer {
   SfxPlayer._();
   static final instance = SfxPlayer._();
 
-  final Map<Sfx, AudioPool> _pools = {};
+  // Two players per sound, reused in turn (so a quick double tap can overlap). audioplayers'
+  // AudioPool can't be used here: in low-latency mode it never hears a sound finish, so every play
+  // made a new player that was never released, each running a per-frame position tracker that kept
+  // the app drawing every frame forever (heat, memory). We never read positions, so those are off.
+  final Map<Sfx, List<AudioPlayer>> _players = {};
+  final Map<Sfx, int> _next = {};
   bool enabled = true;
 
   static final _context = AudioContextConfig(
@@ -46,12 +51,16 @@ class SfxPlayer {
   Future<void> init() async {
     for (final sfx in Sfx.values) {
       try {
-        _pools[sfx] = await AudioPool.create(
-          source: AssetSource('sfx/${sfx.file}'),
-          maxPlayers: 2,
-          audioContext: _context,
-          playerMode: PlayerMode.lowLatency,
-        );
+        final players = <AudioPlayer>[];
+        for (var i = 0; i < 2; i++) {
+          final p = AudioPlayer()..positionUpdater = null;
+          await p.setAudioContext(_context);
+          await p.setPlayerMode(PlayerMode.lowLatency);
+          await p.setReleaseMode(ReleaseMode.stop);
+          await p.setSource(AssetSource('sfx/${sfx.file}'));
+          players.add(p);
+        }
+        _players[sfx] = players;
       } catch (e) {
         debugPrint('Sfx: could not load ${sfx.file}: $e');
       }
@@ -60,11 +69,17 @@ class SfxPlayer {
 
   void play(Sfx sfx, {double volume = 1}) {
     if (!enabled) return;
-    final pool = _pools[sfx];
-    if (pool == null) return;
-    pool.start(volume: volume).catchError((Object e) {
+    final players = _players[sfx];
+    if (players == null) return;
+    final i = _next[sfx] ?? 0;
+    _next[sfx] = (i + 1) % players.length;
+    final p = players[i];
+    () async {
+      await p.stop();
+      await p.setVolume(volume);
+      await p.resume();
+    }().catchError((Object e) {
       debugPrint('Sfx: could not play ${sfx.file}: $e');
-      return () async {};
     });
   }
 }

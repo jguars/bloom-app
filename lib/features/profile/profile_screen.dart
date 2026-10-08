@@ -50,6 +50,7 @@ class ProfileScreen extends ConsumerWidget {
       sceneOverlay: const BedroomWindow(),
       topLeft: const _SettingsButton(),
       line: line,
+      line2: 'Thanks for keeping me company.',
       title: '${profile.displayName} & ${profile.catName}',
       subtitle: Row(children: [
         Expanded(child: Text(days == 0 ? 'Together since today' : 'Together for ${days + 1} days', style: BloomText.bodyMuted.copyWith(fontSize: 15))),

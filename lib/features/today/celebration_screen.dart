@@ -59,9 +59,11 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
               RiseIn(delay: const Duration(milliseconds: 150), child: Text('${widget.ex.name} · ${widget.ex.minutesText}', style: BloomText.caption.copyWith(fontSize: 15))),
               const SizedBox(height: 14),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                PopIn(delay: const Duration(milliseconds: 260), child: EarnChip(text: '+${widget.reward.paws}')),
-                const SizedBox(width: 12),
-                PopIn(delay: const Duration(milliseconds: 340), child: DayRing(done: widget.reward.doneNow)),
+                if (widget.reward.paws > 0) PopIn(delay: const Duration(milliseconds: 260), child: EarnChip(text: '+${widget.reward.paws}')),
+                if (widget.reward.credit == MoveCredit.daily) ...[
+                  const SizedBox(width: 12),
+                  PopIn(delay: const Duration(milliseconds: 340), child: DayRing(done: widget.reward.doneNow)),
+                ],
               ]),
               if (widget.reward.flag != null) ...[
                 const SizedBox(height: 12),
@@ -82,7 +84,11 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
               RiseIn(
                 delay: const Duration(milliseconds: 420),
                 child: Text(
-                  widget.reward.doneNow >= kDailyGoal ? 'Ring full! Clover is beaming.' : 'Clover is a little lighter on her feet.',
+                  switch (widget.reward.credit) {
+                    MoveCredit.extra => 'A bonus move! Half paws, full smiles.',
+                    MoveCredit.fun => 'Just for fun. Clover loved that.',
+                    MoveCredit.daily => widget.reward.doneNow >= kDailyGoal ? 'All three! Clover is beaming.' : 'Clover is a little lighter on her feet.',
+                  },
                   textAlign: TextAlign.center,
                   style: BloomText.bodyMuted,
                 ),
@@ -91,10 +97,10 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
               RiseIn(
                 delay: const Duration(milliseconds: 500),
                 child: LedgeButton(
-                  label: 'Collect ${widget.reward.paws}',
+                  label: widget.reward.paws > 0 ? 'Collect ${widget.reward.paws}' : 'Back to Today',
                   variant: LedgeVariant.reward,
                   glow: true,
-                  leading: const PawIcon(color: BloomColors.ink, size: 20),
+                  leading: widget.reward.paws > 0 ? const PawIcon(color: BloomColors.ink, size: 20) : null,
                   onPressed: () {
                     ref.read(pendingRewardProvider.notifier).set(widget.reward);
                     Navigator.of(context).pop();

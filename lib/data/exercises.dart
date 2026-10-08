@@ -111,24 +111,6 @@ const dailyExercises = <Exercise>[
   ]),
 ];
 
-/// Today's picks: gear moves the user owns come first (they pay more), then
-/// the bodyweight basics, up to ten, in a stable order for the day so swapping
-/// feels like browsing her list, not a dice roll.
-List<Exercise> picksFor(String day, {Set<String> owned = const {}, Set<String> limits = const {}, bool gentle = false}) {
-  final gear = gearExercises.where((e) => owned.contains(e.equipment)).toList();
-  final safe = [...gear, ...dailyExercises].where((e) => e.strains.intersection(limits).isEmpty).toList();
-  var list = safe.length >= 3 ? safe : [...gear, ...dailyExercises];
-  // Mostly sitting: start with the lighter bodyweight moves.
-  if (gentle) {
-    final light = list.where((e) => e.equipment != null || e.effort <= 1.5).toList();
-    if (light.where((e) => e.equipment == null).length >= 3) list = light;
-  }
-  final seed = day.codeUnits.fold<int>(7, (a, c) => (a * 31 + c) & 0x7fffffff);
-  final basics = list.where((e) => e.equipment == null).toList();
-  final shift = basics.isEmpty ? 0 : seed % basics.length;
-  final rotated = [...basics.skip(shift), ...basics.take(shift)];
-  return [...list.where((e) => e.equipment != null), ...rotated].take(10).toList();
-}
 
 /// Finds any move by id.
 Exercise? exerciseById(String id) {
@@ -137,3 +119,30 @@ Exercise? exerciseById(String id) {
   }
   return null;
 }
+
+/// What a move is for, so a day's three cover all of it: one to get moving, one for strength,
+/// one to stretch.
+enum MoveKind { move, strength, stretch }
+
+MoveKind kindOf(Exercise e) => switch (e.id) {
+      'squats' || 'wall_pushups' || 'calf_raises' || 'glute_bridge' || 'dead_bug' || 'curls' || 'press' || 'swings' || 'goblet' || 'knee_raises' => MoveKind.strength,
+      'stretch' || 'arm_circles' || 'hangs' => MoveKind.stretch,
+      _ => MoveKind.move,
+    };
+
+/// Every move the user can do: bodyweight moves plus those from [owned] gear, minus any that load
+/// an area in [limits] (unless that would leave too few), lighter ones first for [gentle] starters.
+List<Exercise> eligibleMoves({Set<String> owned = const {}, Set<String> limits = const {}, bool gentle = false}) {
+  final gear = gearExercises.where((e) => owned.contains(e.equipment)).toList();
+  final all = [...gear, ...dailyExercises];
+  final safe = all.where((e) => e.strains.intersection(limits).isEmpty).toList();
+  var list = safe.length >= 6 ? safe : all;
+  if (gentle) {
+    final light = list.where((e) => e.equipment != null || e.effort <= 1.5).toList();
+    if (light.length >= 6) list = light;
+  }
+  return list;
+}
+
+/// The simple moves offered "just for fun" once the day is done.
+List<Exercise> get funMoves => dailyExercises.where((e) => e.effort <= 1 && e.seconds <= 120).toList();

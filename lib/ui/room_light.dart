@@ -17,7 +17,7 @@ class RoomLight extends StatefulWidget {
 }
 
 class _RoomLightState extends State<RoomLight> with SingleTickerProviderStateMixin {
-  late final _twinkle = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+  late final _twinkle = AnimationController(vsync: this, duration: const Duration(seconds: 6));
 
   /// The window's glass, without the sofa and the TV in front of it (living-glass.png, same size
   /// as the art): the window's tint, stars and moon are clipped to it.
@@ -44,6 +44,13 @@ class _RoomLightState extends State<RoomLight> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final h = widget.time.hour + widget.time.minute / 60;
+    // The stars only twinkle at night; by day nothing here moves, so don't redraw every frame.
+    final dark = h >= 18.5 || h < 7;
+    if (dark && !_twinkle.isAnimating) {
+      _twinkle.repeat();
+    } else if (!dark && _twinkle.isAnimating) {
+      _twinkle.stop();
+    }
     return IgnorePointer(
       child: AnimatedBuilder(
         animation: _twinkle,
