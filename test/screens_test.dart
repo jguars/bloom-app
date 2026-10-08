@@ -133,6 +133,23 @@ void main() {
   testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
   testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
   testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg']));
+  testWidgets('shop-outfits', (t) => _shot(t, 'shop-outfits', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], prefs: {
+        'bloom.today.v2': jsonEncode({'paws': 140, 'owned': ['mat', 'o_sweatband', 'o_glasses'], 'worn': {'head': 'o_sweatband'}}),
+      }, then: (t) async {
+        await t.tap(find.text('Outfits'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        await t.tap(find.text('Head').first);
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        await t.scrollUntilVisible(find.text('Flower crown'), 200, scrollable: find.byType(Scrollable).last);
+      }));
+  testWidgets('shop-decor', (t) => _shot(t, 'shop-decor', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], then: (t) async {
+        await t.tap(find.text('Room decor'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 400));
+        await t.scrollUntilVisible(find.text('Record player'), 200, scrollable: find.byType(Scrollable).last);
+      }));
   testWidgets('plan', (t) => _shot(t, 'plan', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
         await t.tap(find.bySemanticsLabel(RegExp('^Log Drink water')));
         await t.pump(const Duration(milliseconds: 900));

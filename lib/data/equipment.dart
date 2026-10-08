@@ -1,14 +1,21 @@
 import 'exercises.dart';
 
-/// A piece of home-gym gear, bought with paws in the Shop (the garage).
-class Equipment {
-  const Equipment({required this.id, required this.name, required this.price, required this.blurb});
+/// Anything sold in the Shop for paws. [plus] items (the most advanced and pricey in each aisle)
+/// can only be bought with Bloom Plus.
+abstract class ShopItem {
+  const ShopItem({required this.id, required this.name, required this.price, required this.blurb, this.plus = false});
   final String id;
   final String name;
 
   /// Cost in paws. Same scale as Avelo: a typical day earns about 50.
   final int price;
   final String blurb;
+  final bool plus;
+}
+
+/// A piece of home-gym gear, bought with paws in the Shop (the garage).
+class Equipment extends ShopItem {
+  const Equipment({required super.id, required super.name, required super.price, required super.blurb, super.plus});
 
   List<Exercise> get unlocks => gearExercises.where((e) => e.equipment == id).toList();
 }
@@ -16,10 +23,10 @@ class Equipment {
 const equipmentCatalog = <Equipment>[
   Equipment(id: 'mat', name: 'Yoga mat', price: 60, blurb: 'Floor moves that wake up your core.'),
   Equipment(id: 'rope', name: 'Jump rope', price: 150, blurb: 'Light cardio that gets the heart going.'),
-  Equipment(id: 'dumbbells', name: 'Dumbbells', price: 280, blurb: 'Strength that makes every day easier.'),
-  Equipment(id: 'kettlebell', name: 'Kettlebell', price: 450, blurb: 'Whole-body moves, big effort.'),
-  Equipment(id: 'treadmill', name: 'Treadmill', price: 700, blurb: 'Walk any weather, as long as you like.'),
-  Equipment(id: 'bar', name: 'Pull-up bar', price: 1000, blurb: 'The crown of her home gym.'),
+  Equipment(id: 'dumbbells', name: 'Dumbbells', plus: true, price: 280, blurb: 'Strength that makes every day easier.'),
+  Equipment(id: 'kettlebell', name: 'Kettlebell', plus: true, price: 450, blurb: 'Whole-body moves, big effort.'),
+  Equipment(id: 'treadmill', name: 'Treadmill', plus: true, price: 700, blurb: 'Walk any weather, as long as you like.'),
+  Equipment(id: 'bar', name: 'Pull-up bar', plus: true, price: 1000, blurb: 'The crown of her home gym.'),
 ];
 
 Equipment equipmentById(String id) => equipmentCatalog.firstWhere((e) => e.id == id);

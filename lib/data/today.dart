@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'equipment.dart';
+import 'wardrobe.dart';
 import 'exercises.dart';
 import 'journal.dart';
 
@@ -38,6 +39,7 @@ class TodayState {
     this.benched = const {},
     this.seen = const {},
     this.owned = const [],
+    this.worn = const {},
     this.limits = const {},
     this.gentle = false,
     this.loaded = false,
@@ -73,8 +75,11 @@ class TodayState {
   final int paws;
   final bool bonusPaid;
 
-  /// Gear ids owned, in the order bought.
+  /// Shop item ids owned (gear, outfits and decor), in the order bought.
   final List<String> owned;
+
+  /// What she's wearing: an outfit id per slot (head, eyes, neck, body).
+  final Map<String, String> worn;
 
   /// From onboarding: areas to go easy on, and whether to favour lighter moves.
   final Set<String> limits;
@@ -103,6 +108,7 @@ class TodayState {
     int? paws,
     bool? bonusPaid,
     List<String>? owned,
+    Map<String, String>? worn,
     Set<String>? limits,
     bool? gentle,
     bool? loaded,
@@ -120,6 +126,7 @@ class TodayState {
         paws: paws ?? this.paws,
         bonusPaid: bonusPaid ?? this.bonusPaid,
         owned: owned ?? this.owned,
+        worn: worn ?? this.worn,
         limits: limits ?? this.limits,
         gentle: gentle ?? this.gentle,
         loaded: loaded ?? this.loaded,
@@ -138,6 +145,7 @@ class TodayState {
         'paws': paws,
         'bonus': bonusPaid,
         'owned': owned,
+        'worn': worn,
         'limits': limits.toList(),
         'gentle': gentle,
       };
@@ -226,6 +234,7 @@ class TodayNotifier extends Notifier<TodayState> {
       paws: (j['paws'] as num?)?.toInt() ?? 0,
       bonusPaid: false,
       owned: strs(j['owned']),
+      worn: ((j['worn'] as Map?) ?? const {}).map((k, v) => MapEntry(k as String, v as String)),
       limits: strs(j['limits']).toSet(),
       gentle: j['gentle'] == true,
       recent: strs(j['recent']),
@@ -330,12 +339,25 @@ class TodayNotifier extends Notifier<TodayState> {
     _save();
   }
 
-  /// Buys [item] if affordable. Returns false (and changes nothing) if not.
-  bool buy(Equipment item) {
+  /// Buys a Shop item if affordable. Returns false (and changes nothing) if not.
+  bool buy(ShopItem item) {
     if (state.owns(item.id) || state.paws < item.price) return false;
-    state = state.copyWith(paws: state.paws - item.price, owned: [...state.owned, item.id]);
+    state = state.copyWith(
+      paws: state.paws - item.price,
+      owned: [...state.owned, item.id],
+      // A new outfit goes straight on.
+      worn: item is Outfit ? {...state.worn, item.slot.name: item.id} : null,
+    );
     _save();
     return true;
+  }
+
+  /// Puts an owned outfit on, or takes it off if she's wearing it (one per slot).
+  void wear(Outfit o) {
+    if (!state.owns(o.id)) return;
+    final on = state.worn[o.slot.name] == o.id;
+    state = state.copyWith(worn: on ? ({...state.worn}..remove(o.slot.name)) : {...state.worn, o.slot.name: o.id});
+    _save();
   }
 
   void addPaws(int n) {
