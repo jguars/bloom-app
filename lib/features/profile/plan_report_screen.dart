@@ -7,6 +7,7 @@ import '../../data/plan.dart';
 import '../../ui/bits.dart';
 import '../../ui/weight_chart.dart';
 import 'week_stats.dart';
+import '../../ui/rule_icon.dart';
 
 /// Each rule, and which of the last seven days it was kept.
 class PlanReportScreen extends ConsumerWidget {
@@ -64,7 +65,7 @@ class _RuleWeek extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(color: more ? BloomColors.forestSoft : BloomColors.claySoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-            child: Icon(iconFor(rule.icon), size: 20, color: more ? BloomColors.forest : BloomColors.clayDeep),
+            child: Center(child: RuleIcon(rule.icon, size: 30, color: more ? BloomColors.forest : BloomColors.clayDeep)),
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(rule.title, style: BloomText.headline.copyWith(fontSize: 16))),

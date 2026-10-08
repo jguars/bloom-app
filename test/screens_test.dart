@@ -125,6 +125,7 @@ Map<String, Object> _evening({String? answer}) {
 
 /// Every Shop item's picture, so the Shop shots don't catch them still decoding.
 final _shopArt = [for (final f in Directory('assets/shop').listSync()) f.path];
+final _planArt = [for (final f in Directory('assets/plan').listSync()) f.path];
 
 void main() {
   setUpAll(_fonts);
@@ -151,7 +152,7 @@ void main() {
   testWidgets('shop-docked', (t) => _shot(t, 'shop-docked', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
-  testWidgets('plan-docked', (t) => _shot(t, 'plan-docked', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+  testWidgets('plan-docked', (t) => _shot(t, 'plan-docked', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
   testWidgets('shop-decor', (t) => _shot(t, 'shop-decor', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], then: (t) async {
@@ -160,7 +161,7 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.scrollUntilVisible(find.text('Record player'), 200, scrollable: find.byType(Scrollable).last);
       }));
-  testWidgets('plan', (t) => _shot(t, 'plan', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+  testWidgets('plan', (t) => _shot(t, 'plan', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.tap(find.bySemanticsLabel(RegExp('^Log Drink water')));
         await t.pump(const Duration(milliseconds: 900));
         await t.tap(find.bySemanticsLabel('Morning walk'));
@@ -173,12 +174,12 @@ void main() {
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('Mochi'));
       }));
-  testWidgets('plan-edit', (t) => _shot(t, 'plan-edit', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+  testWidgets('plan-edit', (t) => _shot(t, 'plan-edit', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.tap(find.text('Morning walk'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 600));
       }));
-  testWidgets('plan-donts', (t) => _shot(t, 'plan-donts', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+  testWidgets('plan-donts', (t) => _shot(t, 'plan-donts', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.tap(find.text('Don’ts'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 600));
@@ -186,7 +187,7 @@ void main() {
         await t.pump(const Duration(seconds: 4));
         await t.pump(const Duration(seconds: 1));
       }));
-  testWidgets('plan-sheet', (t) => _shot(t, 'plan-sheet', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+  testWidgets('plan-sheet', (t) => _shot(t, 'plan-sheet', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.scrollUntilVisible(find.text('Add a Do'), 200, scrollable: find.byType(Scrollable).first);
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('Add a Do'));
@@ -204,7 +205,7 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.tap(find.bySemanticsLabel(RegExp(r'^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day ')).at(4));
       }));
-  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: {
+  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', ..._planArt], prefs: {
         ..._seed(),
         'bloom.plan.v2': jsonEncode({
           'day': dayKey(DateTime.now()),
@@ -255,7 +256,7 @@ void main() {
       }));
   testWidgets('weekly', (t) => _shot(t, 'weekly', const WeeklyScreen(), prefs: _seed()));
   testWidgets('weight-history', (t) => _shot(t, 'weight-history', const WeightHistoryScreen(), prefs: _seed()));
-  testWidgets('plan-report', (t) => _shot(t, 'plan-report', const PlanReportScreen(), prefs: _seed()));
+  testWidgets('plan-report', (t) => _shot(t, 'plan-report', const PlanReportScreen(), assets: _planArt, prefs: _seed()));
 
   // Onboarding: walk the flow by tapping, then shoot the step reached.
   const obAssets = ['assets/scenes/porch.jpg', 'assets/scenes/living.jpg', 'assets/scenes/hallway.jpg', 'assets/scenes/gift.jpg'];

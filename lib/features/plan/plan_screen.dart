@@ -18,6 +18,7 @@ import '../../ui/room_frame.dart';
 import '../today/flow.dart';
 import '../food/food_check_screen.dart';
 import 'rule_sheet.dart';
+import '../../ui/rule_icon.dart';
 
 /// The balcony garden: the Do's and the Don'ts, a swipe apart. Each list keeps what's up next on
 /// top (the most frequent first); a logged rule sinks to the bottom, and a repeatable one floats
@@ -353,7 +354,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-              child: Icon(iconFor(r.icon), color: deep, size: 22),
+              child: Center(child: RuleIcon(r.icon, size: 36, color: deep)),
             ),
           ),
           const SizedBox(width: 12),

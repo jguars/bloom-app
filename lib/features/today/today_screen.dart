@@ -37,7 +37,7 @@ class TodayScreen extends ConsumerStatefulWidget {
   ConsumerState<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
+class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, WidgetsBindingObserver {
   static const _offeredKey = 'bloom.checkin.offered';
   final _chipKey = GlobalKey();
 
@@ -55,8 +55,61 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
   @override
   Room get visitRoom => Room.today;
 
+  /// The welcome: when the app opens, or you come back to it after leaving, she's stretched out on the sofa.
+  /// Tap once and she stirs (and dozes off again after a while); tap again and she giggles, hops off and walks
+  /// to the rug, where her mood takes over. Any other visit (moving between tabs) is the usual walk-in.
+  _Lazy _lazy = _Lazy.up;
+  int _lazyVisit = -1;
+  Timer? _lazyTimer;
+
+  /// The next Today visit is a welcome: the app just opened, or came back from the background.
+  bool _welcome = true, _away = false;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _away = true;
+    } else if (state == AppLifecycleState.resumed && _away) {
+      _away = false;
+      // Back in the app: a welcome only if it comes back on Today; elsewhere, the rooms carry on as usual.
+      if (mounted && ref.read(roomProvider) == Room.today) {
+        setState(() {
+          _welcome = true;
+          startVisit();
+        });
+      }
+    }
+  }
+
+  void _wake(Offset at) {
+    _lazyTimer?.cancel();
+    if (_lazy == _Lazy.lying) {
+      Feel.selectionClick();
+      setState(() => _lazy = _Lazy.stirred);
+      _lazyTimer = Timer(const Duration(milliseconds: 3500), () {
+        if (mounted && _lazy == _Lazy.stirred) setState(() => _lazy = _Lazy.lying);
+      });
+      return;
+    }
+    SfxPlayer.instance.play(Sfx.purr, volume: .8);
+    Feel.lightImpact();
+    FxLayer.burst(at, count: 10, power: .35);
+    setState(() => _lazy = _Lazy.gettingUp);
+    _lazyTimer = Timer(CloverAction.getUpTime, () {
+      if (mounted) setState(() => _lazy = _Lazy.up);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _lazyTimer?.cancel();
+    super.dispose();
+  }
+
   void _tickle(Offset at) {
-    if (!arrived) return;
+    if (_lazy == _Lazy.lying || _lazy == _Lazy.stirred) return _wake(at);
+    if (!arrived || _lazy == _Lazy.gettingUp) return;
     SfxPlayer.instance.play(Sfx.purr, volume: .8);
     Feel.lightImpact();
     FxLayer.burst(at, count: 10, power: .35);
@@ -70,6 +123,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SharedPreferences.getInstance().then((p) {
       if (!mounted) return;
       setState(() {
@@ -101,6 +155,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
         : 'think';
     if (_mood != null && mood != _mood) startVisit();
     _mood = mood;
+    if (_lazyVisit != visit) {
+      _lazyVisit = visit;
+      _lazy = _welcome && visible ? _Lazy.lying : _Lazy.up;
+      if (visible) _welcome = false;
+      _lazyTimer?.cancel();
+    }
     if (evening && checkIn == null && visible && _offeredLoaded && !_autoScheduled && _offered != s.day) {
       _autoScheduled = true;
       Future.delayed(const Duration(milliseconds: 1400), () => _autoOpen(s.day));
@@ -121,19 +181,25 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
             top: 0,
             child: GestureDetector(
               onTapUp: (d) => _tickle(d.globalPosition),
-              // Clover isn't home when the tab opens; after 2 s she walks in and thinks about what's next,
-              // mopes after a missed day, or beams once the day is done. A new mood restarts her arrival.
+              // Opening the app, she's stretched out on the sofa (see [_Lazy]); otherwise she isn't home when the
+              // tab opens and walks in after 2 s. Either way, up on the rug she thinks about what's next, mopes
+              // after a missed day, or beams once the day is done. A new mood restarts her arrival.
               child: !visible && ShellScope.of(context)
                   ? SizedBox(height: sceneH)
                   : CloverSceneView(
                       key: ValueKey('$mood-$visit'),
                       scene: CloverScene.today,
                       height: sceneH,
-                      action: missed
-                          ? CloverAction.todaySad
-                          : s.goalMet
-                          ? CloverAction.todayProud
-                          : CloverAction.todayThink,
+                      action: switch (_lazy) {
+                        _Lazy.lying => CloverAction.todayLazy,
+                        _Lazy.stirred => CloverAction.todayStir,
+                        _Lazy.gettingUp => CloverAction.todayGetUp,
+                        _Lazy.up => missed
+                            ? CloverAction.todaySad
+                            : s.goalMet
+                            ? CloverAction.todayProud
+                            : CloverAction.todayThink,
+                      },
                       overlay: RoomLight(time: clockNow),
                       fadeHeight: 96,
                     ),
@@ -160,8 +226,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
               child: ArrivedPop(
                 shown: arrived,
                 child: SpeechBubble(
-                  text: _tickled
+                  text: _tickled || _lazy == _Lazy.gettingUp
                       ? 'Hehe! That tickles.'
+                      : _lazy == _Lazy.stirred
+                      ? 'Mm? Five more minutes…'
                       : evening && checkIn != null
                       ? checkIn.reply
                       : missed
@@ -301,6 +369,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit {
     }
   }
 }
+
+/// Where she is on the welcome visit: on the sofa, stirred by a first tap, getting up after the second, up on
+/// the rug (also every ordinary visit, which starts with her walking in).
+enum _Lazy { lying, stirred, gettingUp, up }
 
 class _Pill extends StatelessWidget {
   const _Pill(this.text);

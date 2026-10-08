@@ -49,7 +49,17 @@ enum CloverAction {
   hallDone(17),
 
   /// The bedroom (Profile tab): she walks in and tidies her bookshelf.
-  bedroomTidy(18);
+  bedroomTidy(18),
+
+  /// Today, every visit: she's already stretched out on the sofa, and 2 s in gives you a lazy
+  /// half-lidded glance. A first tap stirs her (the same look, held); a second tickles her: she giggles,
+  /// hops off and walks to the middle of the rug, where the Today moods (7-9) carry on.
+  todayLazy(19),
+  todayStir(20),
+  todayGetUp(21);
+
+  /// How long [todayGetUp] takes, from the tickle to standing on the rug.
+  static const getUpTime = Duration(milliseconds: 4500);
 
   /// The hallway action for the next milestone frame ([next] is its index, 1-4), or the
   /// finished gallery when there is none.

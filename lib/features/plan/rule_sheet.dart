@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../data/plan.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
+import '../../ui/rule_icon.dart';
 
 /// Add or edit a rule: which list, what it is, how often (once a day, or a few times with a daily
 /// goal and a rest before it comes back up), an icon, or a quick pick from suggestions.
@@ -164,7 +165,7 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
                 borderRadius: BorderRadius.circular(BloomSpace.rSm),
                 border: Border.all(color: _icon == k ? BloomColors.forest : Colors.transparent, width: 2),
               ),
-              child: Icon(iconFor(k), color: _icon == k ? BloomColors.forest : BloomColors.sageDeep, size: 22),
+              child: Center(child: RuleIcon(k, size: 34, color: _icon == k ? BloomColors.forest : BloomColors.sageDeep)),
             ),
           ),
       ]),

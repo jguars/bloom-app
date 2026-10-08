@@ -8,6 +8,7 @@ import '../../data/plan.dart';
 import '../../ui/bits.dart';
 import '../../ui/weight_chart.dart';
 import 'journey.dart';
+import '../../ui/rule_icon.dart';
 
 /// Which list a logged rule id belongs to: the plan's own say, or (for rules since removed) its id.
 bool _isDont(String id, Plan plan) =>
@@ -357,7 +358,7 @@ class _HabitRow extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-          child: Icon(iconFor(rule.icon), color: deep, size: 20),
+          child: Center(child: RuleIcon(rule.icon, size: 32, color: deep)),
         ),
         const SizedBox(width: 12),
         Expanded(

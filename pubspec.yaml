@@ -34,6 +34,7 @@ flutter:
     - assets/rive/
     - assets/cats/
     - assets/shop/
+    - assets/plan/
     - assets/cats/fold/
     - assets/cats/calico/
     - assets/widget/
