@@ -33,6 +33,7 @@ flutter:
     - assets/sfx/
     - assets/rive/
     - assets/cats/
+    - assets/shop/
     - assets/cats/fold/
     - assets/cats/calico/
     - assets/widget/

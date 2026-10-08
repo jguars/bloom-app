@@ -281,7 +281,12 @@ class _ItemCard extends StatelessWidget {
               decoration: BoxDecoration(color: item.plus ? BloomColors.forestSoft : BloomColors.oat, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
               child: Stack(
                 children: [
-                  Center(child: Opacity(opacity: locked && !owned ? .75 : 1, child: GearArt(id: item.id))),
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 22, 14, 12),
+                      child: Opacity(opacity: locked && !owned ? .75 : 1, child: GearArt(id: item.id)),
+                    ),
+                  ),
                   if (owned)
                     const Positioned(left: 8, top: 8, child: _Tag('OWNED'))
                   else if (item.plus)

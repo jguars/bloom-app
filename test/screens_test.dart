@@ -123,6 +123,9 @@ Map<String, Object> _evening({String? answer}) {
   return seed;
 }
 
+/// Every Shop item's picture, so the Shop shots don't catch them still decoding.
+final _shopArt = [for (final f in Directory('assets/shop').listSync()) f.path];
+
 void main() {
   setUpAll(_fonts);
   const ex = Exercise(id: 'march', name: 'March in place', seconds: 120, effort: 1, cues: ['Knees up! Like this!']);
@@ -133,8 +136,8 @@ void main() {
       }));
   testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
   testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
-  testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg']));
-  testWidgets('shop-outfits', (t) => _shot(t, 'shop-outfits', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], prefs: {
+  testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt]));
+  testWidgets('shop-outfits', (t) => _shot(t, 'shop-outfits', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], prefs: {
         'bloom.today.v2': jsonEncode({'paws': 140, 'owned': ['mat', 'o_sweatband', 'o_glasses'], 'worn': {'head': 'o_sweatband'}}),
       }, then: (t) async {
         await t.tap(find.text('Outfits'));
@@ -145,13 +148,13 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.scrollUntilVisible(find.text('Flower crown'), 200, scrollable: find.byType(Scrollable).last);
       }));
-  testWidgets('shop-docked', (t) => _shot(t, 'shop-docked', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], then: (t) async {
+  testWidgets('shop-docked', (t) => _shot(t, 'shop-docked', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
   testWidgets('plan-docked', (t) => _shot(t, 'plan-docked', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
-  testWidgets('shop-decor', (t) => _shot(t, 'shop-decor', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], then: (t) async {
+  testWidgets('shop-decor', (t) => _shot(t, 'shop-decor', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], then: (t) async {
         await t.tap(find.text('Room decor'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));
