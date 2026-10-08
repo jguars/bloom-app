@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:rive/rive.dart' as rive;
 
+
 import '../app/idle.dart';
 import '../app/theme.dart';
+import '../data/coat.dart';
 import 'clover_mini.dart';
 import 'clover_rive.dart';
 
@@ -88,30 +90,36 @@ enum CloverScene {
   // stay loaded, plus the [_keep] most recently closed (so flipping between two tabs is instant);
   // older ones are freed.
   static const _keep = 2;
-  static final _files = <CloverScene, Future<rive.File?>>{};
-  static final _users = <CloverScene, int>{};
-  static final _recent = <CloverScene>[];
+  static final _files = <(CloverScene, Coat), Future<rive.File?>>{};
+  static final _users = <(CloverScene, Coat), int>{};
+  static final _recent = <(CloverScene, Coat)>[];
 
-  Future<rive.File?> load() => _files[this] ??= rive.File.asset(asset, riveFactory: riveFactory);
+  /// This scene, drawn with [coat]'s cat (by default the one chosen now).
+  Future<rive.File?> load([Coat? coat]) {
+    final c = coat ?? Coat.current.value;
+    return _files[(this, c)] ??= c.open(asset, riveFactory);
+  }
 
-  /// A view starts showing this scene: load it (or reuse it) and keep it while in use.
-  Future<rive.File?> acquire() {
-    _users[this] = (_users[this] ?? 0) + 1;
-    _recent.remove(this);
-    return load();
+  /// A view starts showing this scene with [coat]: load it (or reuse it) and keep it while in use.
+  Future<rive.File?> acquire(Coat coat) {
+    final k = (this, coat);
+    _users[k] = (_users[k] ?? 0) + 1;
+    _recent.remove(k);
+    return load(coat);
   }
 
   /// A view stopped showing it; free the oldest scenes nobody is showing.
-  void release() {
-    final n = (_users[this] ?? 1) - 1;
+  void release(Coat coat) {
+    final k = (this, coat);
+    final n = (_users[k] ?? 1) - 1;
     if (n > 0) {
-      _users[this] = n;
+      _users[k] = n;
       return;
     }
-    _users.remove(this);
+    _users.remove(k);
     _recent
-      ..remove(this)
-      ..add(this);
+      ..remove(k)
+      ..add(k);
     while (_recent.length > _keep) {
       final old = _recent.removeAt(0);
       _files.remove(old)?.then((f) => f?.dispose());
@@ -156,14 +164,38 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   rive.ViewModelInstanceNumber? _action;
   bool _failed = false;
 
-  /// Holding this scene's file (see [CloverScene.acquire]); released on dispose.
-  bool _acquired = false;
+  /// The cat whose scene file this view holds (see [CloverScene.acquire]); released on dispose, or
+  /// when another cat is chosen and the scene reloads with hers.
+  Coat? _held;
 
   @override
   void initState() {
     super.initState();
     Idle.idle.addListener(_onIdle);
+    Coat.current.addListener(_onCoat);
     _start();
+  }
+
+  void _onCoat() {
+    if (Coat.current.value == _held || _failed) return;
+    _drop();
+    setState(() {});
+    _start();
+  }
+
+  /// Lets go of the live scene and its file.
+  void _drop() {
+    _walking?.dispose();
+    _action?.dispose();
+    _eyes?.dispose();
+    _vm?.dispose();
+    _controller?.dispose();
+    _walking = _action = null;
+    _eyes = null;
+    _vm = null;
+    _controller = null;
+    if (_held case final c?) widget.scene.release(c);
+    _held = null;
   }
 
   // Rive's clock ignores TickerMode (and pausing the controller doesn't stop its state machine asking
@@ -200,12 +232,13 @@ class _CloverSceneViewState extends State<CloverSceneView> {
       return;
     }
     try {
-      final file = await widget.scene.acquire();
-      if (!mounted) {
-        widget.scene.release(); // closed while loading
+      final coat = Coat.current.value;
+      final file = await widget.scene.acquire(coat);
+      if (!mounted || coat != Coat.current.value) {
+        widget.scene.release(coat); // closed, or another cat chosen, while loading
         return;
       }
-      _acquired = true;
+      _held = coat;
       if (file == null) return;
       final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName(widget.scene.artboard), stateMachineSelector: rive.StateMachineSelector.byDefault());
       // The scene and the Clover nested in it share CloverRigVM.
@@ -245,13 +278,9 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   @override
   void dispose() {
     Idle.idle.removeListener(_onIdle);
+    Coat.current.removeListener(_onCoat);
     _still?.dispose();
-    _walking?.dispose();
-    _action?.dispose();
-    _eyes?.dispose();
-    _vm?.dispose();
-    _controller?.dispose();
-    if (_acquired) widget.scene.release();
+    _drop();
     super.dispose();
   }
 

@@ -82,6 +82,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       room: Room.shop,
       line: line,
       title: 'Shop',
+      panel: _tab,
       line2: 'Every move we do earns us paws.',
       subtitle: Text(
         switch (_tab) {

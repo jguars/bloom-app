@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart' as rive;
 
+
+import '../data/coat.dart';
 import '../data/exercises.dart';
 import '../data/journal.dart';
 import 'clover_mini.dart';
@@ -83,7 +85,6 @@ class CloverRive extends StatefulWidget {
   final Alignment alignment;
 
   /// Loads the file once for the whole app. Call [init] at startup.
-  static Future<rive.File?>? _file;
   static bool _nativeReady = false;
 
   /// Whether Rive's native runtime loaded (false in widget tests).
@@ -105,10 +106,16 @@ class CloverRive extends StatefulWidget {
     CloverScene.preloadAll();
   }
 
-  static Future<rive.File?> _load() => _file ??= rive.File.asset(
-        'assets/rive/clover.riv',
-        riveFactory: riveFactory,
-      );
+  static final _files = <Coat, Future<rive.File?>>{};
+
+  /// Clover's own file, with the chosen cat's pieces (only the one in use stays loaded).
+  static Future<rive.File?> _load() {
+    final coat = Coat.current.value;
+    for (final c in [..._files.keys]) {
+      if (c != coat) _files.remove(c)?.then((f) => f?.dispose());
+    }
+    return _files[coat] ??= coat.open('assets/rive/clover.riv', riveFactory);
+  }
 
   @override
   State<CloverRive> createState() => _CloverRiveState();

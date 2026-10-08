@@ -76,6 +76,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
       room: Room.plan,
       line: line,
       title: 'Plan',
+      panel: _tab,
       line2: 'Small swaps add up. You’ve got this.',
       titleTrailing: const _PhotoCheckButton(),
       subtitle: AnimatedSwitcher(
@@ -299,16 +300,6 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     widget.onLogged();
   }
 
-  void _remove() {
-    final notifier = ref.read(planProvider.notifier);
-    final rule = widget.rule;
-    final at = notifier.remove(rule.id);
-    SfxPlayer.instance.play(Sfx.swipe);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(_snack('Removed “${rule.title}”', 'Undo', () => notifier.restore(rule, at)));
-  }
-
   SnackBar _snack(String text, String action, VoidCallback onAction) => SnackBar(
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
@@ -340,77 +331,64 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     final more = r.kind == PlanKind.more;
     final (tint, deep) = more ? (BloomColors.forestSoft, BloomColors.forest) : (BloomColors.claySoft, BloomColors.clayDeep);
     final dim = !widget.due;
-    return Dismissible(
-      key: ValueKey('dismiss-${r.id}'),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _remove(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(color: BloomColors.claySoft, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('Remove', style: BloomText.button.copyWith(color: BloomColors.clayDeep, fontSize: 15)),
-          const SizedBox(width: 6),
-          const Icon(Icons.delete_outline_rounded, color: BloomColors.clayDeep),
-        ]),
-      ),
-      child: GestureDetector(
-        onTap: () => showBloomSheet<void>(context, (c) => RuleSheet(editing: r)),
-        child: AnimatedContainer(
-          duration: BloomMotion.base,
-          padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-          decoration: BoxDecoration(
-            color: dim ? BloomColors.paper : BloomColors.surface,
-            borderRadius: BorderRadius.circular(BloomSpace.rMd),
-            boxShadow: dim
-                ? const [BoxShadow(color: BloomColors.line, offset: Offset(0, 1))]
-                : const [BoxShadow(color: BloomColors.line, offset: Offset(0, 1)), BoxShadow(color: Color(0x14403A1E), blurRadius: 24, offset: Offset(0, 10))],
-          ),
-          child: Row(children: [
-            AnimatedOpacity(
-              duration: BloomMotion.base,
-              opacity: dim ? .65 : 1,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-                child: Icon(iconFor(r.icon), color: deep, size: 22),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                AnimatedDefaultTextStyle(
-                  duration: BloomMotion.base,
-                  style: BloomText.headline.copyWith(fontSize: 16, height: 22 / 16, color: dim ? BloomColors.inkMuted : BloomColors.ink),
-                  child: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-                const SizedBox(height: 2),
-                Row(children: [
-                  if (r.repeats && r.goal <= 12) ...[
-                    for (var i = 0; i < r.goal; i++)
-                      AnimatedContainer(
-                        duration: BloomMotion.base,
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(right: 3),
-                        decoration: BoxDecoration(color: i < widget.count ? deep : BloomColors.line, borderRadius: BorderRadius.circular(3)),
-                      ),
-                    const SizedBox(width: 4),
-                  ],
-                  Flexible(child: Text(_meta(), style: BloomText.caption, maxLines: 1, overflow: TextOverflow.ellipsis)),
-                ]),
-              ]),
-            ),
-            const SizedBox(width: 8),
-            KeyedSubtree(
-              key: _buttonKey,
-              child: r.repeats
-                  ? _LogButton(count: widget.count, due: widget.due, more: more, label: r.title, onTap: _log)
-                  : _Check(on: widget.count > 0, skip: !more, onTap: _tick, label: r.title),
-            ),
-          ]),
+    // No swipe-to-remove: a swipe always switches between the Do's and the Don'ts. Removing lives
+    // in the edit sheet.
+    return GestureDetector(
+      onTap: () => showBloomSheet<void>(context, (c) => RuleSheet(editing: r)),
+      child: AnimatedContainer(
+        duration: BloomMotion.base,
+        padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: dim ? BloomColors.paper : BloomColors.surface,
+          borderRadius: BorderRadius.circular(BloomSpace.rMd),
+          boxShadow: dim
+              ? const [BoxShadow(color: BloomColors.line, offset: Offset(0, 1))]
+              : const [BoxShadow(color: BloomColors.line, offset: Offset(0, 1)), BoxShadow(color: Color(0x14403A1E), blurRadius: 24, offset: Offset(0, 10))],
         ),
+        child: Row(children: [
+          AnimatedOpacity(
+            duration: BloomMotion.base,
+            opacity: dim ? .65 : 1,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
+              child: Icon(iconFor(r.icon), color: deep, size: 22),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+              AnimatedDefaultTextStyle(
+                duration: BloomMotion.base,
+                style: BloomText.headline.copyWith(fontSize: 16, height: 22 / 16, color: dim ? BloomColors.inkMuted : BloomColors.ink),
+                child: Text(r.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(height: 2),
+              Row(children: [
+                if (r.repeats && r.goal <= 12) ...[
+                  for (var i = 0; i < r.goal; i++)
+                    AnimatedContainer(
+                      duration: BloomMotion.base,
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(right: 3),
+                      decoration: BoxDecoration(color: i < widget.count ? deep : BloomColors.line, borderRadius: BorderRadius.circular(3)),
+                    ),
+                  const SizedBox(width: 4),
+                ],
+                Flexible(child: Text(_meta(), style: BloomText.caption, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ]),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          KeyedSubtree(
+            key: _buttonKey,
+            child: r.repeats
+                ? _LogButton(count: widget.count, due: widget.due, more: more, label: r.title, onTap: _log)
+                : _Check(on: widget.count > 0, skip: !more, onTap: _tick, label: r.title),
+          ),
+        ]),
       ),
     );
   }

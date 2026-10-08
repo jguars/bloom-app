@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/shell.dart';
 import '../../app/theme.dart';
+import '../../data/coat.dart';
 import '../../data/journal.dart';
 import '../../data/plan.dart';
 import '../../data/premium.dart';
@@ -17,6 +18,7 @@ import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
 import '../paywall/paywall_screen.dart';
 import '../today/flow.dart';
+import 'cat_picker.dart';
 import 'plan_report_screen.dart';
 import 'settings_screen.dart';
 import 'week_stats.dart';
@@ -49,6 +51,7 @@ class ProfileScreen extends ConsumerWidget {
       room: Room.profile,
       sceneOverlay: const BedroomWindow(),
       topLeft: const _SettingsButton(),
+      titleTrailing: const _CatButton(),
       line: line,
       line2: 'Thanks for keeping me company.',
       title: '${profile.displayName} & ${profile.catName}',
@@ -218,6 +221,47 @@ class _SettingsButton extends StatelessWidget {
               boxShadow: [BoxShadow(color: Color(0x292E3826), blurRadius: 12, offset: Offset(0, 4))],
             ),
             child: const Icon(Icons.settings_outlined, color: BloomColors.ink, size: 24),
+          ),
+        ),
+      );
+}
+
+/// The cat who lives here, in a round frame by the title: opens the cat picker.
+class _CatButton extends ConsumerWidget {
+  const _CatButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Semantics(
+        button: true,
+        label: 'Choose your cat',
+        child: GestureDetector(
+          onTap: () => showCatPicker(context),
+          child: ValueListenableBuilder<Coat>(
+            valueListenable: Coat.current,
+            builder: (context, coat, _) => Stack(clipBehavior: Clip.none, children: [
+              Container(
+                width: 52,
+                height: 52,
+                padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+                decoration: BoxDecoration(
+                  color: BloomColors.forestSoft,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: BloomColors.surface, width: 3),
+                  boxShadow: const [BoxShadow(color: Color(0x292E3826), blurRadius: 10, offset: Offset(0, 4))],
+                ),
+                child: ClipOval(child: Image.asset(coat.thumb, fit: BoxFit.cover, alignment: Alignment.topCenter)),
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(color: BloomColors.forest, shape: BoxShape.circle, border: Border.all(color: BloomColors.surface, width: 2)),
+                  child: const Icon(Icons.swap_horiz_rounded, size: 13, color: BloomColors.onForest),
+                ),
+              ),
+            ]),
           ),
         ),
       );

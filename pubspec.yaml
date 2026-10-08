@@ -32,6 +32,9 @@ flutter:
     - assets/scenes/
     - assets/sfx/
     - assets/rive/
+    - assets/cats/
+    - assets/cats/fold/
+    - assets/cats/calico/
     - assets/widget/
     - assets/alarm/
   fonts:

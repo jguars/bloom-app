@@ -12,6 +12,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/gate.dart';
 import 'app/idle.dart';
 import 'data/alarms.dart';
+import 'data/coat.dart';
+import 'data/premium.dart';
+import 'data/profile.dart';
 import 'features/alarm/ringing_screen.dart';
 import 'app/reminders.dart';
 import 'app/sfx.dart';
@@ -63,6 +66,19 @@ class _BloomAppState extends ConsumerState<BloomApp> {
     super.initState();
     // Loads saved alarms and re-arms them.
     ref.read(alarmsProvider);
+    // The scenes draw the chosen cat while Bloom Plus is on; without it, Clover.
+    void cat() {
+      // COAT=fold|calico (a --dart-define) forces a cat, for checking the scenes on a device.
+      const forced = String.fromEnvironment('COAT');
+      final coat = Coat.values.asNameMap()[forced] ?? ref.read(profileProvider).coat;
+      if (forced.isNotEmpty) {
+        Coat.current.value = coat;
+        return;
+      }
+      Coat.current.value = coat.plus && !ref.read(premiumProvider).active ? Coat.clover : coat;
+    }
+    ref.listenManual(profileProvider.select((p) => p.coat), (_, _) => cat(), fireImmediately: true);
+    ref.listenManual(premiumProvider.select((p) => p.active), (_, _) => cat(), fireImmediately: true);
     // After the first frame, so startup isn't slowed by it.
     WidgetsBinding.instance.addPostFrameCallback((_) => CloverRive.preload());
     PerfTour.run(_navigator, ref);

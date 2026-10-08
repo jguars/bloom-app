@@ -14,6 +14,7 @@ import 'package:bloom/features/food/food_check_screen.dart';
 import 'package:bloom/features/onboarding/onboarding_flow.dart';
 import 'package:bloom/features/paywall/paywall_screen.dart';
 import 'package:bloom/features/plan/plan_screen.dart';
+import 'package:bloom/features/profile/cat_picker.dart';
 import 'package:bloom/features/profile/plan_report_screen.dart';
 import 'package:bloom/features/profile/profile_screen.dart';
 import 'package:bloom/features/profile/settings_screen.dart';
@@ -144,6 +145,12 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.scrollUntilVisible(find.text('Flower crown'), 200, scrollable: find.byType(Scrollable).last);
       }));
+  testWidgets('shop-docked', (t) => _shot(t, 'shop-docked', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
+      }));
+  testWidgets('plan-docked', (t) => _shot(t, 'plan-docked', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
+      }));
   testWidgets('shop-decor', (t) => _shot(t, 'shop-decor', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg'], then: (t) async {
         await t.tap(find.text('Room decor'));
         await t.pump();
@@ -156,6 +163,17 @@ void main() {
         await t.tap(find.bySemanticsLabel('Morning walk'));
         await t.pump(const Duration(seconds: 4));
         await t.pump(const Duration(seconds: 1));
+      }));
+  testWidgets('cat-picker', (t) => _shot(t, 'cat-picker', Scaffold(body: Builder(builder: (c) => Center(child: TextButton(onPressed: () => showCatPicker(c), child: const Text('open'))))), assets: ['assets/cats/thumb-clover.png', 'assets/cats/thumb-fold.png', 'assets/cats/thumb-calico.png'], then: (t) async {
+        await t.tap(find.text('open'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
+        await t.tap(find.text('Mochi'));
+      }));
+  testWidgets('plan-edit', (t) => _shot(t, 'plan-edit', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+        await t.tap(find.text('Morning walk'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
       }));
   testWidgets('plan-donts', (t) => _shot(t, 'plan-donts', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
         await t.tap(find.text('Don’ts'));

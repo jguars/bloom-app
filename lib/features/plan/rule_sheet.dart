@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
+import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/plan.dart';
 import '../../ui/ledge_button.dart';
@@ -36,6 +37,27 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
   }
 
   bool get _editing => widget.editing != null;
+
+  /// Removes the rule being edited, with an undo in case it was a slip.
+  void _remove() {
+    final notifier = ref.read(planProvider.notifier);
+    final rule = widget.editing!;
+    final at = notifier.remove(rule.id);
+    SfxPlayer.instance.play(Sfx.swipe);
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 4),
+      persist: false,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+      backgroundColor: BloomColors.ink,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BloomSpace.rMd)),
+      content: Text('Removed “${rule.title}”', style: BloomText.body.copyWith(color: BloomColors.surface), maxLines: 1, overflow: TextOverflow.ellipsis),
+      action: SnackBarAction(label: 'Undo', textColor: BloomColors.mustard, onPressed: () => notifier.restore(rule, at)),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +182,16 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
               }
             : null,
       ),
+      if (_editing) ...[
+        const SizedBox(height: 6),
+        Center(
+          child: TextButton.icon(
+            onPressed: _remove,
+            icon: const Icon(Icons.delete_outline_rounded, color: BloomColors.clayDeep),
+            label: Text('Remove rule', style: BloomText.button.copyWith(fontSize: 15, color: BloomColors.clayDeep)),
+          ),
+        ),
+      ],
     ]);
   }
 }

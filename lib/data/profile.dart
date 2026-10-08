@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../app/feel.dart';
 import '../app/reminders.dart';
 import '../app/sfx.dart';
+import 'coat.dart';
 
 /// Names, onboarding answers and app preferences.
 class Profile {
   const Profile({
     this.name = '',
-    this.catName = 'Clover',
+    this.coat = Coat.clover,
+    this.names = const {},
     this.sound = true,
     this.haptics = true,
     this.pounds = false,
@@ -28,7 +30,15 @@ class Profile {
 
   /// The user's first name; empty until they set it.
   final String name;
-  final String catName;
+
+  /// The cat chosen (Plus cats only show while Plus is on), and the name given to each cat.
+  final Coat coat;
+  final Map<String, String> names;
+
+  String nameOf(Coat c) => (names[c.name] ?? '').trim().isEmpty ? c.defaultName : names[c.name]!.trim();
+
+  /// The chosen cat's name.
+  String get catName => nameOf(coat);
   final bool sound, haptics;
 
   /// Show weights in pounds. Weights are always stored in kilograms.
@@ -52,6 +62,8 @@ class Profile {
   Profile copyWith({
     String? name,
     String? catName,
+    Coat? coat,
+    Map<String, String>? names,
     bool? sound,
     bool? haptics,
     bool? pounds,
@@ -66,7 +78,9 @@ class Profile {
   }) =>
       Profile(
         name: name ?? this.name,
-        catName: catName ?? this.catName,
+        coat: coat ?? this.coat,
+        // A new [catName] names the cat chosen (or the one being switched to).
+        names: catName == null ? (names ?? this.names) : {...(names ?? this.names), (coat ?? this.coat).name: catName},
         sound: sound ?? this.sound,
         haptics: haptics ?? this.haptics,
         pounds: pounds ?? this.pounds,
@@ -83,7 +97,9 @@ class Profile {
 
   Map<String, Object?> toJson() => {
         'name': name,
-        'catName': catName,
+        'catName': nameOf(Coat.clover),
+        'coat': coat.name,
+        'names': names,
         'sound': sound,
         'haptics': haptics,
         'pounds': pounds,
@@ -99,7 +115,9 @@ class Profile {
 
   factory Profile.fromJson(Map<String, Object?> j) => Profile(
         name: j['name'] as String? ?? '',
-        catName: j['catName'] as String? ?? 'Clover',
+        coat: Coat.values.asNameMap()[j['coat']] ?? Coat.clover,
+        // Before there were other cats, her name was kept on its own.
+        names: {if (j['catName'] case final String n) 'clover': n, ...((j['names'] as Map?) ?? const {}).cast<String, String>()},
         sound: j['sound'] as bool? ?? true,
         haptics: j['haptics'] as bool? ?? true,
         pounds: j['pounds'] as bool? ?? false,
