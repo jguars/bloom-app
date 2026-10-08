@@ -126,13 +126,27 @@ void main() {
   testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
   testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg']));
   testWidgets('plan', (t) => _shot(t, 'plan', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+        await t.tap(find.bySemanticsLabel(RegExp('^Log Drink water')));
+        await t.pump(const Duration(milliseconds: 900));
         await t.tap(find.bySemanticsLabel('Morning walk'));
-        await t.tap(find.bySemanticsLabel('Fast food'));
+        await t.pump(const Duration(seconds: 4));
+        await t.pump(const Duration(seconds: 1));
+      }));
+  testWidgets('plan-donts', (t) => _shot(t, 'plan-donts', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
+        await t.tap(find.text('Don’ts'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
+        await t.tap(find.bySemanticsLabel(RegExp('^Said no to Sugary drinks')));
+        await t.pump(const Duration(seconds: 4));
+        await t.pump(const Duration(seconds: 1));
       }));
   testWidgets('plan-sheet', (t) => _shot(t, 'plan-sheet', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg'], then: (t) async {
-        await t.scrollUntilVisible(find.text('Add a rule'), 200, scrollable: find.byType(Scrollable).first);
+        await t.scrollUntilVisible(find.text('Add a Do'), 200, scrollable: find.byType(Scrollable).first);
         await t.pump(const Duration(milliseconds: 600));
-        await t.tap(find.text('Add a rule'));
+        await t.tap(find.text('Add a Do'));
+        await t.pump();
+        await t.pump(const Duration(milliseconds: 600));
+        await t.tap(find.text('A few times'));
       }));
   testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg']));
   testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed()));

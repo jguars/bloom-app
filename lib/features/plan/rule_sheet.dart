@@ -7,18 +7,23 @@ import '../../data/plan.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 
-/// Add or edit a rule: which list, what it is, an icon, or a quick pick from
-/// suggestions.
+/// Add or edit a rule: which list, what it is, how often (once a day, or a few times with a daily
+/// goal and a rest before it comes back up), an icon, or a quick pick from suggestions.
 class RuleSheet extends ConsumerStatefulWidget {
-  const RuleSheet({super.key, this.editing});
+  const RuleSheet({super.key, this.editing, this.kind = PlanKind.more});
   final PlanRule? editing;
+  final PlanKind kind;
 
   @override
   ConsumerState<RuleSheet> createState() => _RuleSheetState();
 }
 
 class _RuleSheetState extends ConsumerState<RuleSheet> {
-  late PlanKind _kind = widget.editing?.kind ?? (ref.read(planProvider.notifier).canAdd(PlanKind.more) ? PlanKind.more : PlanKind.skip);
+  late PlanKind _kind = widget.editing?.kind ?? widget.kind;
+  late bool _repeats = (widget.editing?.goal ?? 1) > 1;
+  late int _goal = (widget.editing?.goal ?? 1) > 1 ? widget.editing!.goal : 3;
+  late int _rest = widget.editing?.rest ?? 90;
+  static const _rests = [30, 60, 90, 120, 180];
   late final _text = TextEditingController(text: widget.editing?.title ?? '');
   late String _icon = widget.editing?.icon ?? 'walk';
   final _focus = FocusNode();
@@ -35,20 +40,19 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(planProvider.notifier);
-    final full = !_editing && !notifier.canAdd(_kind);
     final suggestions = (_kind == PlanKind.more ? moreSuggestions : skipSuggestions)
         .where((s) => !ref.read(planProvider).rules.any((r) => r.title == s.title))
         .take(4)
         .toList();
-    final valid = _text.text.trim().isNotEmpty && !full;
+    final valid = _text.text.trim().isNotEmpty;
     final icons = _kind == PlanKind.more
         ? ['walk', 'water', 'stretch', 'veg', 'stairs', 'sleep', 'sun', 'fruit']
         : ['drink', 'fastfood', 'night', 'snack', 'cake', 'screen', 'bar', 'plate'];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      Text(_editing ? 'Edit rule' : 'Add a rule', style: BloomText.title),
+      Text(_editing ? 'Edit rule' : (_kind == PlanKind.more ? 'Add a Do' : 'Add a Don’t'), style: BloomText.title),
       const SizedBox(height: 14),
       SegmentedSwitch(
-        labels: const ['Do more of', 'Skip'],
+        labels: const ['Do', 'Don’t'],
         index: _kind.index,
         onChanged: (i) => setState(() {
           _kind = PlanKind.values[i];
@@ -66,7 +70,7 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
         style: BloomText.headline,
         cursorColor: BloomColors.forest,
         decoration: InputDecoration(
-          hintText: _kind == PlanKind.more ? 'e.g. Evening walk' : 'e.g. Sugary drinks',
+          hintText: _kind == PlanKind.more ? 'Evening walk' : 'Sugary drinks',
           hintStyle: BloomText.headline.copyWith(color: BloomColors.inkMuted, fontWeight: FontWeight.w700),
           filled: true,
           fillColor: BloomColors.surface,
@@ -85,10 +89,43 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
               onTap: () => setState(() {
                 _text.text = s.title;
                 _icon = s.icon;
+                _repeats = s.goal > 1;
+                if (_repeats) {
+                  _goal = s.goal;
+                  _rest = s.rest;
+                }
               }),
             ),
         ]),
       ],
+      const SizedBox(height: 16),
+      Text('How often?', style: BloomText.headline.copyWith(fontSize: 14)),
+      const SizedBox(height: 8),
+      SegmentedSwitch(labels: const ['Once a day', 'A few times'], index: _repeats ? 1 : 0, onChanged: (i) => setState(() => _repeats = i == 1)),
+      AnimatedSize(
+        duration: BloomMotion.base,
+        curve: BloomMotion.enter,
+        alignment: Alignment.topCenter,
+        child: !_repeats
+            ? const SizedBox(width: double.infinity)
+            : Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Row(children: [
+                    Expanded(child: Text(_kind == PlanKind.more ? 'Daily goal' : 'Say no up to', style: BloomText.body)),
+                    _Step(icon: Icons.remove_rounded, label: 'Fewer', onTap: _goal > 2 ? () => setState(() => _goal--) : null),
+                    SizedBox(width: 64, child: Text('$_goal×', textAlign: TextAlign.center, style: BloomText.headline)),
+                    _Step(icon: Icons.add_rounded, label: 'More', onTap: _goal < 12 ? () => setState(() => _goal++) : null),
+                  ]),
+                  const SizedBox(height: 10),
+                  Text('Back up the list after', style: BloomText.body),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final m in _rests) _Chip(label: m % 60 == 0 ? '${m ~/ 60} h' : '$m min', selected: _rest == m, onTap: () => setState(() => _rest = m)),
+                  ]),
+                ]),
+              ),
+      ),
       const SizedBox(height: 16),
       Text('Icon', style: BloomText.headline.copyWith(fontSize: 14)),
       const SizedBox(height: 8),
@@ -109,19 +146,15 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
             ),
           ),
       ]),
-      if (full) ...[
-        const SizedBox(height: 12),
-        Text('That list already has $kMaxRules. A few rules kept beat a long list ignored.', style: BloomText.caption.copyWith(color: BloomColors.clayDeep, fontSize: 14)),
-      ],
       const SizedBox(height: 18),
       LedgeButton(
         label: _editing ? 'Save rule' : 'Add rule',
         onPressed: valid
             ? () {
                 if (_editing) {
-                  notifier.update(widget.editing!.copyWith(kind: _kind, title: _text.text.trim(), icon: _icon));
+                  notifier.update(widget.editing!.copyWith(kind: _kind, title: _text.text.trim(), icon: _icon, goal: _repeats ? _goal : 1, rest: _rest));
                 } else {
-                  notifier.add(_kind, _text.text, _icon);
+                  notifier.add(_kind, _text.text, _icon, goal: _repeats ? _goal : 1, rest: _rest);
                 }
                 Navigator.of(context).pop();
               }
@@ -144,6 +177,27 @@ class _Chip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(color: selected ? BloomColors.forestSoft : BloomColors.paperSunk, borderRadius: BorderRadius.circular(BloomSpace.rPill)),
           child: Text(label, style: BloomText.button.copyWith(fontSize: 14, color: selected ? BloomColors.forest : BloomColors.ink)),
+        ),
+      );
+}
+
+class _Step extends StatelessWidget {
+  const _Step({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: label,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: BloomColors.paperSunk, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: onTap == null ? BloomColors.line : BloomColors.ink, size: 20),
+          ),
         ),
       );
 }

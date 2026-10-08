@@ -38,9 +38,9 @@ class PlanReportScreen extends ConsumerWidget {
       children: [
         Text('The last 7 days, ending today.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
         const SizedBox(height: 16),
-        section(PlanKind.more, 'Do more of'),
+        section(PlanKind.more, 'Do’s'),
         const SizedBox(height: 8),
-        section(PlanKind.skip, 'Skip'),
+        section(PlanKind.skip, 'Don’ts'),
       ],
     );
   }
