@@ -8,7 +8,6 @@ import 'package:rive/rive.dart' as rive;
 import '../data/coat.dart';
 import '../data/exercises.dart';
 import '../data/journal.dart';
-import 'clover_mini.dart';
 import 'clover_scene.dart';
 
 /// Which Rive renderer draws Clover and her scenes. Flutter's canvas measured
@@ -56,7 +55,33 @@ enum CloverAction {
   /// hops off and walks to the middle of the rug, where the Today moods (7-9) carry on.
   todayLazy(19),
   todayStir(20),
-  todayGetUp(21);
+  todayGetUp(21),
+
+  /// Session moves, done with you (each loops until the action changes). In the living room: chair squats,
+  /// "wall" push-ups against your phone's glass, a one-song dance, arm circles.
+  exSquat(22),
+  exWallPush(23),
+  exDance(24),
+  exArmCircles(25),
+
+  /// In the bedroom: a morning stretch; glute bridges and dead bugs on her mat (she unrolls it and lies down first).
+  exStretch(26),
+  exBridge(27),
+  exDeadBug(28),
+
+  /// In the garage gym, with the gear you own: rope hops, skater steps, curls and overhead presses (dumbbells),
+  /// kettlebell swings and goblet squats, the treadmill (a walk, and uphill), and the wall bar (she leaps up to hang,
+  /// or to raise her knees).
+  exRopeHops(29),
+  exSkater(30),
+  exCurls(31),
+  exPress(32),
+  exSwings(33),
+  exGoblet(34),
+  exTreadWalk(35),
+  exIncline(36),
+  exHang(37),
+  exKneeRaise(38);
 
   /// How long [todayGetUp] takes, from the tickle to standing on the rug.
   static const getUpTime = Duration(milliseconds: 4500);
@@ -83,9 +108,9 @@ CloverAction actionFor(Exercise ex) => switch (ex.id) {
       _ => CloverAction.march,
     };
 
-/// The live Clover from assets/rive/clover.riv: breathing, blinking and tail
-/// sway always run underneath; [action] plays a move on top, [eyesOpen] is
-/// the "Ready?" look, and [bodyMass] (100 = softest) widens only the bean.
+/// Clover on her own, without a room: the painted CloverRig from assets/rive/clover_rig.riv (the same
+/// rig the rooms nest). Breathing, blinking and tail sway always run underneath; [action] plays a move
+/// on top, [eyesOpen] is the "Ready?" look, and [bodyMass] (100 = softest) widens only the bean.
 class CloverRive extends StatefulWidget {
   const CloverRive({super.key, this.action = CloverAction.rest, this.bodyMass = 60, this.eyesOpen = false, this.fit = rive.Fit.contain, this.alignment = Alignment.bottomCenter});
   final CloverAction action;
@@ -124,7 +149,7 @@ class CloverRive extends StatefulWidget {
     for (final c in [..._files.keys]) {
       if (c != coat) _files.remove(c)?.then((f) => f?.dispose());
     }
-    return _files[coat] ??= coat.open('assets/rive/clover.riv', riveFactory);
+    return _files[coat] ??= coat.open('assets/rive/clover_rig.riv', riveFactory);
   }
 
   @override
@@ -154,7 +179,7 @@ class _CloverRiveState extends State<CloverRive> {
     try {
       final file = await CloverRive._load();
       if (file == null || !mounted) return;
-      final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName('Clover'), stateMachineSelector: rive.StateMachineSelector.byName('CloverSM'));
+      final c = rive.RiveWidgetController(file, artboardSelector: rive.ArtboardSelector.byName('CloverRig'), stateMachineSelector: rive.StateMachineSelector.byDefault());
       final vm = c.dataBind(rive.DataBind.auto());
       setState(() {
         _controller = c;
@@ -170,8 +195,16 @@ class _CloverRiveState extends State<CloverRive> {
     }
   }
 
+  /// The rig has no squat, reach, hop or standing sad of its own yet: those play as a march (moving
+  /// along with you) or her rest.
+  static CloverAction _onRig(CloverAction a) => switch (a) {
+        CloverAction.squat || CloverAction.reach || CloverAction.hop => CloverAction.march,
+        CloverAction.sad => CloverAction.rest,
+        _ => a,
+      };
+
   void _push() {
-    _action?.value = widget.action.value.toDouble();
+    _action?.value = _onRig(widget.action).value.toDouble();
     _mass?.value = widget.bodyMass.clamp(0, 100).toDouble();
     _eyes?.value = widget.eyesOpen;
   }
@@ -196,17 +229,22 @@ class _CloverRiveState extends State<CloverRive> {
   Widget build(BuildContext context) {
     final c = _controller;
     if (_failed) {
-      // Same footprint as the artboard (600×700, feet at y = 620).
-      return LayoutBuilder(builder: (context, box) {
-        final h = box.maxHeight.isFinite ? box.maxHeight : 160.0;
-        return Stack(children: [
-          Positioned(left: 0, right: 0, bottom: h * 80 / 700, child: Center(child: CloverMini(bodyMass: widget.bodyMass, size: h * .63))),
-        ]);
-      });
+      return CloverStill(alignment: widget.alignment);
     }
     if (c == null) return const SizedBox.expand();
     return rive.RiveWidget(controller: c, fit: widget.fit, alignment: widget.alignment);
   }
+}
+
+/// Clover standing at rest, as a picture: where Rive can't draw (widget tests, a failed load).
+class CloverStill extends StatelessWidget {
+  const CloverStill({super.key, this.alignment = Alignment.bottomCenter});
+  final Alignment alignment;
+
+  static const asset = 'assets/widget/widget_clover_rest.png';
+
+  @override
+  Widget build(BuildContext context) => Image.asset(asset, fit: BoxFit.contain, alignment: alignment);
 }
 
 /// [CloverRive] at her current shape, which follows the effort put in.

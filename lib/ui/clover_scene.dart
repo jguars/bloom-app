@@ -11,7 +11,6 @@ import '../app/idle.dart';
 import '../app/theme.dart';
 import '../data/coat.dart';
 import '../data/wardrobe.dart';
-import 'clover_mini.dart';
 import 'clover_rive.dart';
 
 /// The painted Clover rig inside one of her Rive scenes. Each scene is its own
@@ -134,7 +133,7 @@ enum CloverScene {
 /// Plays a [CloverScene] filling [height] (anchored per scene, so her feet
 /// never crop), fading into the panel below like the other scenes.
 class CloverSceneView extends StatefulWidget {
-  const CloverSceneView({super.key, required this.scene, required this.height, this.walking = false, this.eyesOpen = false, this.cheering = false, this.action, this.overlay, this.fadeHeight = 48});
+  const CloverSceneView({super.key, required this.scene, required this.height, this.walking = false, this.eyesOpen = false, this.cheering = false, this.action, this.overlay, this.fadeHeight = 48, this.alignment});
   final CloverScene scene;
   final double height;
 
@@ -153,6 +152,9 @@ class CloverSceneView extends StatefulWidget {
   /// Painted over the art, under the fade (e.g. RoomLight's time-of-day tint).
   final Widget? overlay;
   final double fadeHeight;
+
+  /// Frames the art differently from the scene's own [CloverScene.alignment] (onboarding's shorter stage).
+  final Alignment? alignment;
 
   @override
   State<CloverSceneView> createState() => _CloverSceneViewState();
@@ -313,8 +315,8 @@ class _CloverSceneViewState extends State<CloverSceneView> {
     final Widget art;
     if (_failed) {
       art = Stack(fit: StackFit.expand, children: [
-        Image.asset(widget.scene.fallback, fit: BoxFit.cover, alignment: widget.scene.alignment),
-        Positioned(left: 0, right: 0, bottom: widget.height * .17, child: Center(child: CloverMini(bodyMass: 60, size: widget.height * .3))),
+        Image.asset(widget.scene.fallback, fit: BoxFit.cover, alignment: widget.alignment ?? widget.scene.alignment),
+        Positioned(left: 0, right: 0, bottom: widget.height * .17, child: SizedBox(height: widget.height * .36, child: const CloverStill())),
       ]);
     } else if (c == null) {
       art = const ColoredBox(color: Color(0xFFF8F0D9));
@@ -322,7 +324,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
       final still = _still;
       art = still != null
           ? RawImage(image: still, fit: BoxFit.fill)
-          : RepaintBoundary(key: _artKey, child: rive.RiveWidget(controller: c, fit: rive.Fit.cover, alignment: widget.scene.alignment));
+          : RepaintBoundary(key: _artKey, child: rive.RiveWidget(controller: c, fit: rive.Fit.cover, alignment: widget.alignment ?? widget.scene.alignment));
     }
     return SizedBox(
       height: widget.height,

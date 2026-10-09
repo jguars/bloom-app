@@ -102,11 +102,17 @@ class ObQuestion extends StatelessWidget {
 /// A choice tile: radio or checkbox. Selecting springs it and fills it
 /// forest-soft.
 class ObChoice extends StatelessWidget {
-  const ObChoice({super.key, required this.label, required this.selected, required this.onTap, this.sub, this.multi = false});
+  const ObChoice({super.key, required this.label, required this.selected, required this.onTap, this.sub, this.multi = false, this.leading, this.trailing});
   final String label;
   final String? sub;
   final bool selected, multi;
   final VoidCallback onTap;
+
+  /// A picture in place of the radio mark (a tick shows on the right once picked).
+  final Widget? leading;
+
+  /// Something at the end of the row (a goal date).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -154,14 +160,22 @@ class ObChoice extends StatelessWidget {
               boxShadow: [BoxShadow(color: selected ? BloomColors.sage : BloomColors.line, offset: const Offset(0, 3))],
             ),
             child: Row(children: [
-              mark,
-              const SizedBox(width: 14),
+              leading ?? mark,
+              SizedBox(width: leading == null ? 14 : 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(label, style: BloomText.headline.copyWith(fontSize: 16, height: 22 / 16, color: selected ? BloomColors.forest : BloomColors.ink)),
                   if (sub != null) Text(sub!, style: BloomText.caption),
                 ]),
               ),
+              ?trailing,
+              if (leading != null)
+                AnimatedScale(
+                  scale: selected ? 1 : 0,
+                  duration: const Duration(milliseconds: 320),
+                  curve: BloomMotion.pop,
+                  child: const Icon(Icons.check_circle_rounded, color: BloomColors.forest, size: 24),
+                ),
             ]),
           ),
         ),

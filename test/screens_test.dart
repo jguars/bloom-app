@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:bloom/app/clock.dart';
 import 'package:bloom/app/shell.dart';
 import 'package:bloom/app/theme.dart';
+import 'package:bloom/ui/clover_rive.dart';
 import 'package:bloom/data/exercises.dart';
 import 'package:bloom/data/journal.dart';
 import 'package:bloom/data/today.dart';
@@ -55,7 +56,7 @@ Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> 
     child: MaterialApp(theme: bloomTheme(), debugShowCheckedModeBanner: false, builder: (c, child) => FxLayer.wrap(child!), home: home),
   ));
   await tester.runAsync(() async {
-    for (final a in assets) {
+    for (final a in [CloverStill.asset, ...assets]) {
       await precacheImage(AssetImage(a), tester.element(find.byType(MaterialApp)));
     }
   });
@@ -259,7 +260,7 @@ void main() {
   testWidgets('plan-report', (t) => _shot(t, 'plan-report', const PlanReportScreen(), assets: _planArt, prefs: _seed()));
 
   // Onboarding: walk the flow by tapping, then shoot the step reached.
-  const obAssets = ['assets/scenes/porch.jpg', 'assets/scenes/living.jpg', 'assets/scenes/hallway.jpg', 'assets/scenes/gift.jpg'];
+  final obAssets = ['assets/scenes/porch.jpg', 'assets/scenes/ready-empty.jpg', 'assets/scenes/living-empty.jpg', 'assets/scenes/balcony-empty.jpg', 'assets/scenes/march-empty.jpg', 'assets/scenes/garage-empty.jpg', 'assets/scenes/bedroom-empty.jpg', 'assets/scenes/hallway-empty.jpg', 'assets/scenes/celebrate-empty.jpg', 'assets/scenes/gift.jpg', 'assets/cats/thumb-clover.png', 'assets/scenes/bedroom-window.png', 'assets/scenes/sky-cloud-a.png', 'assets/scenes/sky-cloud-b.png', 'assets/scenes/sky-cloud-c.png', ..._planArt];
   Future<void> settle(WidgetTester t) async {
     for (var i = 0; i < 8; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -269,51 +270,73 @@ void main() {
   Future<void> tapText(WidgetTester t, String s) async {
     await t.ensureVisible(find.text(s).last);
     await t.pump(const Duration(milliseconds: 100));
-    await t.tap(find.text(s).last);
+    await t.tap(find.text(s).last, warnIfMissed: false);
     await settle(t);
   }
 
+  Future<void> toCat(WidgetTester t) => tapText(t, 'Let’s meet her');
   Future<void> toName(WidgetTester t) async {
-    await tapText(t, 'Let’s meet her');
-    await t.enterText(find.byType(TextField), 'Sam');
+    await toCat(t);
+    await tapText(t, 'That’s her name');
+    await t.enterText(find.byType(TextField).last, 'Sam');
     await settle(t);
+  }
+
+  Future<void> toWhy(WidgetTester t) async {
+    await toName(t);
+    await tapText(t, 'Nice to meet you');
   }
 
   Future<void> toNumbers(WidgetTester t) async {
-    await toName(t);
-    await tapText(t, 'Next');
+    await toWhy(t);
     await tapText(t, 'Move more every day');
+    await tapText(t, 'That’s me');
+  }
+
+  Future<void> toPace(WidgetTester t) async {
+    await toNumbers(t);
     await tapText(t, 'Next');
   }
 
-  Future<void> toLimits(WidgetTester t) async {
-    await toNumbers(t);
-    await tapText(t, 'Next');
-    await tapText(t, 'Next');
-    await tapText(t, 'Mostly sitting');
-    await tapText(t, 'Next');
-    await tapText(t, 'Back');
+  Future<void> toBody(WidgetTester t) async {
+    await toPace(t);
+    await tapText(t, 'Steady it is');
+    await tapText(t, 'Some walking');
     await tapText(t, 'Knees');
   }
 
-  Future<void> toJourney(WidgetTester t) async {
-    await toLimits(t);
+  Future<void> toReminders(WidgetTester t) async {
+    await toBody(t);
     await tapText(t, 'Next');
+  }
+
+  Future<void> toBuilding(WidgetTester t) async {
+    await toReminders(t);
     await tapText(t, 'Maybe later');
+    for (var i = 0; i < 12; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  Future<void> toJourney(WidgetTester t) async {
+    await toBuilding(t);
+    for (var i = 0; i < 40; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
   }
 
   testWidgets('ob-welcome', (t) => _shot(t, 'ob-welcome', const OnboardingFlow(), assets: obAssets));
+  testWidgets('ob-cat-name', (t) => _shot(t, 'ob-cat-name', const OnboardingFlow(), assets: obAssets, then: toCat));
   testWidgets('ob-name', (t) => _shot(t, 'ob-name', const OnboardingFlow(), assets: obAssets, then: toName));
+  testWidgets('ob-why', (t) => _shot(t, 'ob-why', const OnboardingFlow(), assets: obAssets, then: (t) async {
+        await toWhy(t);
+        await tapText(t, 'Move more every day');
+      }));
   testWidgets('ob-numbers', (t) => _shot(t, 'ob-numbers', const OnboardingFlow(), assets: obAssets, then: toNumbers));
-  testWidgets('ob-pace', (t) => _shot(t, 'ob-pace', const OnboardingFlow(), assets: obAssets, then: (t) async {
-        await toNumbers(t);
-        await tapText(t, 'Next');
-      }));
-  testWidgets('ob-limits', (t) => _shot(t, 'ob-limits', const OnboardingFlow(), assets: obAssets, then: toLimits));
-  testWidgets('ob-reminders', (t) => _shot(t, 'ob-reminders', const OnboardingFlow(), assets: obAssets, then: (t) async {
-        await toLimits(t);
-        await tapText(t, 'Next');
-      }));
+  testWidgets('ob-pace', (t) => _shot(t, 'ob-pace', const OnboardingFlow(), assets: obAssets, then: toPace));
+  testWidgets('ob-body', (t) => _shot(t, 'ob-body', const OnboardingFlow(), assets: obAssets, then: toBody));
+  testWidgets('ob-reminders', (t) => _shot(t, 'ob-reminders', const OnboardingFlow(), assets: obAssets, then: toReminders));
+  testWidgets('ob-building', (t) => _shot(t, 'ob-building', const OnboardingFlow(), assets: obAssets, then: toBuilding));
   testWidgets('ob-journey', (t) => _shot(t, 'ob-journey', const OnboardingFlow(), assets: obAssets, then: toJourney));
   testWidgets('paywall', (t) => _shot(t, 'paywall', Scaffold(body: PaywallScreen(onDone: () {})), assets: obAssets));
 

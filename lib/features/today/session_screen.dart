@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/motion.dart';
+import '../../app/clock.dart';
 import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
@@ -12,11 +13,36 @@ import '../../data/today.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/clover_scene.dart';
+import '../../ui/room_light.dart';
 import '../../ui/scene.dart';
 import '../../ui/speech_bubble.dart';
+import '../../ui/window_sky.dart';
 import 'celebration_screen.dart';
 import 'flow.dart';
 import 'ready_screen.dart';
+
+/// The room Clover does a move in with you, and the move: the living room's rug, the bedroom floor (on her mat), or
+/// the garage gym with the gear. Moves without a room of their own yet stay in the park.
+(CloverScene, CloverAction)? sessionRoom(Exercise ex) => switch (ex.id) {
+      'squats' => (CloverScene.today, CloverAction.exSquat),
+      'wall_pushups' => (CloverScene.today, CloverAction.exWallPush),
+      'dance' => (CloverScene.today, CloverAction.exDance),
+      'arm_circles' => (CloverScene.today, CloverAction.exArmCircles),
+      'stretch' => (CloverScene.profile, CloverAction.exStretch),
+      'glute_bridge' => (CloverScene.profile, CloverAction.exBridge),
+      'dead_bug' => (CloverScene.profile, CloverAction.exDeadBug),
+      'rope_hops' => (CloverScene.gym, CloverAction.exRopeHops),
+      'skater' => (CloverScene.gym, CloverAction.exSkater),
+      'curls' => (CloverScene.gym, CloverAction.exCurls),
+      'press' => (CloverScene.gym, CloverAction.exPress),
+      'swings' => (CloverScene.gym, CloverAction.exSwings),
+      'goblet' => (CloverScene.gym, CloverAction.exGoblet),
+      'tread_walk' => (CloverScene.gym, CloverAction.exTreadWalk),
+      'incline' => (CloverScene.gym, CloverAction.exIncline),
+      'hangs' => (CloverScene.gym, CloverAction.exHang),
+      'knee_raises' => (CloverScene.gym, CloverAction.exKneeRaise),
+      _ => null,
+    };
 
 /// 3-2-1, then the move: a live countdown, a progress bar, and Clover's cues
 /// changing every quarter of the way.
@@ -88,6 +114,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
     final left = (total - _elapsed.inSeconds).clamp(0, total);
     final cue = widget.ex.cues[(p * widget.ex.cues.length).floor().clamp(0, widget.ex.cues.length - 1)];
     final action = actionFor(widget.ex);
+    final room = sessionRoom(widget.ex);
     String fmt(int s) => '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
     return Scaffold(
       backgroundColor: BloomColors.surface,
@@ -96,8 +123,29 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
           left: 0,
           right: 0,
           top: 0,
+          // Moves with a room: she waits there with you through the 3-2-1 ("Ready?"), then does it with you.
           // Marching moves walk through the scrolling park; the rest stay in the still scene.
-          child: action == CloverAction.march
+          child: room != null
+              ? CloverSceneView(
+                  scene: room.$1,
+                  height: sceneH,
+                  action: _count > 0 || _paused ? CloverAction.rest : room.$2,
+                  eyesOpen: _count > 0,
+                  // The bedroom is framed on her mat (the Profile tab frames the shelf and the window); the gym on her
+                  // spot under the wall bar.
+                  alignment: switch (room.$1) {
+                    CloverScene.profile => const Alignment(.1, 0),
+                    CloverScene.gym => const Alignment(.6, 0),
+                    _ => null,
+                  },
+                  overlay: switch (room.$1) {
+                    CloverScene.profile => const BedroomWindow(),
+                    CloverScene.today => RoomLight(time: ref.watch(clockProvider)()),
+                    _ => null,
+                  },
+                  fadeHeight: 80,
+                )
+              : action == CloverAction.march
               ? CloverSceneView(scene: CloverScene.march, height: sceneH, walking: _count == 0 && !_paused)
               : Scene(
                   asset: 'assets/scenes/march-empty.jpg',

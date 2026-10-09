@@ -1,3 +1,4 @@
+import 'app/move_tour.dart';
 import 'app/perf_probe.dart';
 import 'app/perf_tour.dart';
 
@@ -91,6 +92,7 @@ class _BloomAppState extends ConsumerState<BloomApp> {
     // After the first frame, so startup isn't slowed by it.
     WidgetsBinding.instance.addPostFrameCallback((_) => CloverRive.preload());
     PerfTour.run(_navigator, ref);
+    MoveTour.run(_navigator);
     try {
       _ringing = Alarm.ringing.listen((set) {
         for (final a in set.alarms) {
