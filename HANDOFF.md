@@ -27,11 +27,11 @@ habit, first step seen); day-7 return; rooms visited per day.
 
 ## Where this copy starts
 
-- Git worktree `bloom-app-house` on branch `house-plan`, made from `roaming-clover` at 73b9441 plus that branch's
-  uncommitted work at the time (copied in, not committed): Craving rooms (kitchen water, nook breathing, lane walk,
-  window), calf raises at the kitchen counter, rebuilt wall push-ups, one shared title-row pill style (`lib/ui/title_pill.dart`),
-  membership testing (Settings › Subscription to cancel Plus; Settings › Testing to borrow paws).
-- The original `bloom-app-roaming` folder is untouched; `bloom-app` is `main`.
+- Git worktree `bloom-app-house` on branch `house-plan` (pushed to origin), branched from `roaming-clover` at 1c92c4a:
+  Craving rooms (kitchen water, nook breathing, lane walk, window), calf raises at the kitchen counter, rebuilt wall
+  push-ups, one shared title-row pill style (`lib/ui/title_pill.dart`), membership testing (Settings › Subscription to
+  cancel Plus; Settings › Testing to borrow paws).
+- `bloom-app-roaming` (branch `roaming-clover`) holds the same work; `bloom-app` is `main`.
 - Commit and push only when asked.
 
 ## Working notes
