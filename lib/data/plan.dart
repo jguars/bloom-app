@@ -227,18 +227,6 @@ class PlanNotifier extends Notifier<Plan> {
     return paws;
   }
 
-  /// Takes back the latest log of a rule, and its paws.
-  void unlog(String id) {
-    final r = _rule(id);
-    final n = state.count(id);
-    if (r == null || n == 0) return;
-    final paws = pawsFor(n, r.goal);
-    final list = [...state.logs[id]!]..removeLast();
-    state = state.copyWith(logs: {...state.logs, id: list}..removeWhere((_, v) => v.isEmpty));
-    if (paws > 0) ref.read(todayProvider.notifier).addPaws(-paws);
-    _save();
-  }
-
   int _pawsOf(String id) {
     final r = _rule(id);
     if (r == null) return 0;
@@ -246,16 +234,11 @@ class PlanNotifier extends Notifier<Plan> {
   }
 
   /// Ticks a rule (one log) or, if it has any logs today, clears them all; moves paws with it.
-  bool toggle(String id) {
-    if (!state.isKept(id)) {
-      log(id);
-      return true;
-    }
-    final paws = _pawsOf(id);
-    state = state.copyWith(logs: {...state.logs}..remove(id));
-    if (paws > 0) ref.read(todayProvider.notifier).addPaws(-paws);
-    _save();
-    return false;
+  /// Marks a once-a-day rule kept. Kept is final for the day (no taking it back); returns whether this tap kept it.
+  bool keep(String id) {
+    if (state.isKept(id)) return false;
+    log(id);
+    return true;
   }
 
   void add(PlanKind kind, String title, String icon, {int goal = 1, int rest = 90}) {

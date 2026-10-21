@@ -193,16 +193,14 @@ class _RuleChip extends ConsumerWidget {
       label: rule.title,
       child: GestureDetector(
         onTap: () {
-          final on = ref.read(planProvider.notifier).toggle(rule.id);
+          // Kept is final for the day: tapping a kept one does nothing.
+          final on = ref.read(planProvider.notifier).keep(rule.id);
           final box = context.findRenderObject() as RenderBox?;
           if (on && box != null) {
             Feel.lightImpact();
             SfxPlayer.instance.play(Sfx.check);
             final c = box.localToGlobal(box.size.center(Offset.zero));
             FxLayer.fly(c, c + const Offset(0, -90), '+$kPawsPerRule');
-          } else {
-            Feel.selectionClick();
-            SfxPlayer.instance.play(Sfx.uncheck);
           }
         },
         child: TweenAnimationBuilder<double>(

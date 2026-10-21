@@ -19,7 +19,7 @@ enum Coat {
   static final current = ValueNotifier<Coat>(Coat.clover);
 
   /// Her pieces, by the names of Clover's image assets in the Rive files (`clover_<piece>`).
-  static const _pieces = ['body_noface', 'body_noeyes', 'ear_l', 'ear_r', 'arm_l', 'arm_r', 'leg_l', 'leg_r', 'tail', 'flower'];
+  static const _pieces = ['body_noface', 'body_noeyes', 'head', 'headround', 'belly', 'back_body', 'ear_l', 'ear_r', 'arm_l', 'arm_r', 'leg_l', 'leg_r', 'tail', 'flower'];
   static final _bytes = <Coat, Future<Map<String, Uint8List>>>{};
 
   /// Reads this cat's pieces, once, before a file that needs them is decoded.

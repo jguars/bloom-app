@@ -47,8 +47,12 @@ import 'ready_screen.dart';
 /// 3-2-1, then the move: a live countdown, a progress bar, and Clover's cues
 /// changing every quarter of the way.
 class SessionScreen extends ConsumerStatefulWidget {
-  const SessionScreen({super.key, required this.ex});
+  const SessionScreen({super.key, required this.ex, this.preview = false});
   final Exercise ex;
+
+  /// The Move lab's preview (test builds): the same session, but finishing just goes back. Nothing is logged and
+  /// no paws are earned.
+  final bool preview;
 
   @override
   ConsumerState<SessionScreen> createState() => _SessionScreenState();
@@ -95,6 +99,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
     _ticker.stop();
     SfxPlayer.instance.play(Sfx.done);
     Feel.heavyImpact();
+    if (widget.preview) {
+      Navigator.of(context).pop();
+      return;
+    }
     final reward = ref.read(todayProvider.notifier).finish(widget.ex);
     Navigator.of(context).pushReplacement(bloomRoute(CelebrationScreen(ex: widget.ex, reward: reward)));
   }
@@ -165,7 +173,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
           child: Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + mq.padding.bottom),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text(widget.ex.name.toUpperCase(), style: BloomText.label),
+              Text(widget.preview ? '${widget.ex.name.toUpperCase()} · PREVIEW' : widget.ex.name.toUpperCase(), style: BloomText.label),
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(fmt(left), style: BloomText.displayXl.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
                 const Spacer(),
@@ -190,7 +198,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> with SingleTicker
                 onPressed: _count == 0 ? () => setState(() => _paused = !_paused) : null,
               ),
               const SizedBox(height: 6),
-              if (kDebugMode) Center(child: LedgeButton(label: 'Skip to the end (debug)', variant: LedgeVariant.ghost, expand: false, onPressed: _count == 0 ? _finish : null)),
+              if (kDebugMode || widget.preview) Center(child: LedgeButton(label: widget.preview ? 'Skip to the end' : 'Skip to the end (debug)', variant: LedgeVariant.ghost, expand: false, onPressed: _count == 0 ? _finish : null)),
             ]),
           ),
         ),

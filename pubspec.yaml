@@ -39,6 +39,7 @@ flutter:
     - assets/cats/calico/
     - assets/widget/
     - assets/alarm/
+    - assets/urge/
   fonts:
     - family: Nunito
       fonts:

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:bloom/app/clock.dart';
 import 'package:bloom/app/shell.dart';
 import 'package:bloom/app/theme.dart';
+import 'package:bloom/features/lab/move_lab_screen.dart';
+import 'package:bloom/features/streak/streak_screens.dart';
 import 'package:bloom/ui/clover_rive.dart';
 import 'package:bloom/data/exercises.dart';
 import 'package:bloom/data/journal.dart';
@@ -132,11 +134,89 @@ void main() {
   setUpAll(_fonts);
   const ex = Exercise(id: 'march', name: 'March in place', seconds: 120, effort: 1, cues: ['Knees up! Like this!']);
   testWidgets('today', (t) => _shot(t, 'today', const Shell(), assets: ['assets/scenes/living.jpg']));
+  // Swiped up, the living room tucks away (as in the other rooms): the slim title, the craving button and the paws stay.
+  testWidgets('today-scrolled', (t) => _shot(t, 'today-scrolled', const Shell(), assets: ['assets/scenes/living.jpg'], then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
+        await t.pump(const Duration(milliseconds: 600));
+      }));
   testWidgets('ready', (t) => _shot(t, 'ready', const ReadyScreen(ex: ex), assets: ['assets/scenes/ready-empty.jpg']));
   testWidgets('exercise-picker', (t) => _shot(t, 'exercise-picker', Scaffold(body: Consumer(builder: (c, ref, _) => Center(child: TextButton(onPressed: () => showExercisePicker(c, ref), child: const Text('open'))))), then: (t) async {
         await t.tap(find.text('open'));
       }));
   testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
+  // Streak: the seed misses day 10 (patched here) and day 3, so the run is 13 days.
+  Map<String, Object> streakSeed() {
+    final now = DateTime.now();
+    final missed = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+    return {..._seed(), 'bloom.streak.v1': jsonEncode({'p': 1, 'pd': [dayKey(missed)], 'l': 13})};
+  }
+  testWidgets('streak', (t) => _shot(t, 'streak', const StreakScreen(), prefs: streakSeed()));
+  testWidgets('streak calendar swipes between months, even in the first month', (t) async {
+    t.view.physicalSize = const Size(390 * 3, 844 * 3);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    // A journey that began today: there's still a year of months to swipe back through.
+    SharedPreferences.setMockInitialValues({});
+    await t.pumpWidget(ProviderScope(child: MaterialApp(theme: bloomTheme(), home: const StreakScreen())));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    final now = DateTime.now();
+    String title(DateTime m) => '${names[m.month - 1]} ${m.year}';
+    final prev = DateTime(now.year, now.month - 1);
+    await t.ensureVisible(find.byType(PageView));
+    await t.pumpAndSettle();
+    expect(find.text(title(now)), findsOneWidget);
+    // A slow drag that follows the finger, then lets go past halfway.
+    await t.drag(find.byType(PageView), const Offset(260, 0));
+    await t.pumpAndSettle();
+    expect(find.text(title(prev)), findsOneWidget);
+    await t.drag(find.byType(PageView), const Offset(-260, 0));
+    await t.pumpAndSettle();
+    expect(find.text(title(now)), findsOneWidget);
+    // Nothing after this month.
+    await t.drag(find.byType(PageView), const Offset(-260, 0));
+    await t.pumpAndSettle();
+    expect(find.text(title(now)), findsOneWidget);
+  });
+  testWidgets('streak-celebrate', (t) => _shot(t, 'streak-celebrate', const StreakCelebrationScreen(reward: Reward(paws: 10, bonus: 0, doneNow: 1)), assets: ['assets/scenes/celebrate-empty.jpg'], prefs: streakSeed()));
+  testWidgets('streak-patch', (t) {
+    final now = DateTime.now();
+    final from = dayKey(DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)));
+    return _shot(t, 'streak-patch', StreakPatchScreen(gap: (from: from, days: 1, run: 13)), prefs: streakSeed());
+  });
+  testWidgets('move-lab', (t) => _shot(t, 'move-lab', const MoveLabScreen()));
+  testWidgets('preview session saves nothing', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await t.pumpWidget(UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: bloomTheme(), builder: (c, child) => FxLayer.wrap(child!), home: const Scaffold(body: Text('lab'))),
+    ));
+    final nav = t.state<NavigatorState>(find.byType(Navigator));
+    nav.push(MaterialPageRoute<void>(builder: (_) => const SessionScreen(ex: ex, preview: true)));
+    await t.pump(const Duration(milliseconds: 300));
+    for (var i = 0; i < 40; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    // Let the saved state finish loading (a first run grants its welcome paws) before taking the baseline.
+    for (var i = 0; i < 50 && !container.read(todayProvider).loaded; i++) {
+      await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await t.pump();
+    }
+    expect(container.read(todayProvider).loaded, isTrue);
+    final before = container.read(todayProvider);
+    await t.tap(find.text('Skip to the end'));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('lab'), findsOneWidget);
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    expect(container.read(todayProvider).doneIds, before.doneIds);
+    expect(container.read(todayProvider).paws, before.paws);
+  });
   testWidgets('celebrate', (t) => _shot(t, 'celebrate', const CelebrationScreen(ex: ex, reward: Reward(paws: 10, bonus: 0, doneNow: 1, flag: Milestone(7, 'First week', ''))), assets: ['assets/scenes/celebrate-empty.jpg']));
   testWidgets('shop', (t) => _shot(t, 'shop', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt]));
   testWidgets('shop-outfits', (t) => _shot(t, 'shop-outfits', const Scaffold(body: ShopScreen()), assets: ['assets/scenes/garage.jpg', ..._shopArt], prefs: {
@@ -196,17 +276,22 @@ void main() {
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('A few times'));
       }));
-  testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg']));
-  testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed()));
-  testWidgets('progress-together', (t) => _shot(t, 'progress-together', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+  testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg']));
+  testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed()));
+  // Swiped up, the stairs tuck away and the Together/Habits/Weight switch docks under the slim title.
+  testWidgets('progress-scrolled', (t) => _shot(t, 'progress-scrolled', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed(), then: (t) async {
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -900));
+        await t.pump(const Duration(milliseconds: 600));
+      }));
+  testWidgets('progress-together', (t) => _shot(t, 'progress-together', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
       }));
-  testWidgets('progress-day', (t) => _shot(t, 'progress-day', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+  testWidgets('progress-day', (t) => _shot(t, 'progress-day', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
         await t.pump(const Duration(milliseconds: 400));
         await t.tap(find.bySemanticsLabel(RegExp(r'^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day ')).at(4));
       }));
-  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', ..._planArt], prefs: {
+  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', ..._planArt], prefs: {
         ..._seed(),
         'bloom.plan.v2': jsonEncode({
           'day': dayKey(DateTime.now()),
@@ -227,17 +312,17 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
       }));
-  testWidgets('progress-weight', (t) => _shot(t, 'progress-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed(), then: (t) async {
+  testWidgets('progress-weight', (t) => _shot(t, 'progress-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed(), then: (t) async {
         await t.tap(find.text('Weight'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));
         await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
       }));
-  testWidgets('progress-portrait', (t) => _shot(t, 'progress-portrait', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
+  testWidgets('progress-portrait', (t) => _shot(t, 'progress-portrait', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', for (var i = 1; i <= 5; i++) 'assets/scenes/portrait-$i.webp'], prefs: _seed(), then: (t) async {
         await t.tapAt(const Offset(80, 130));
         await t.pump();
       }));
-  testWidgets('log-weight', (t) => _shot(t, 'log-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/hallway.jpg'], prefs: _seed(), then: (t) async {
+  testWidgets('log-weight', (t) => _shot(t, 'log-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed(), then: (t) async {
         await t.tap(find.text('Weight'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));
@@ -260,7 +345,7 @@ void main() {
   testWidgets('plan-report', (t) => _shot(t, 'plan-report', const PlanReportScreen(), assets: _planArt, prefs: _seed()));
 
   // Onboarding: walk the flow by tapping, then shoot the step reached.
-  final obAssets = ['assets/scenes/porch.jpg', 'assets/scenes/ready-empty.jpg', 'assets/scenes/living-empty.jpg', 'assets/scenes/balcony-empty.jpg', 'assets/scenes/march-empty.jpg', 'assets/scenes/garage-empty.jpg', 'assets/scenes/bedroom-empty.jpg', 'assets/scenes/hallway-empty.jpg', 'assets/scenes/celebrate-empty.jpg', 'assets/scenes/gift.jpg', 'assets/cats/thumb-clover.png', 'assets/scenes/bedroom-window.png', 'assets/scenes/sky-cloud-a.png', 'assets/scenes/sky-cloud-b.png', 'assets/scenes/sky-cloud-c.png', ..._planArt];
+  final obAssets = ['assets/scenes/porch.jpg', 'assets/scenes/ready-empty.jpg', 'assets/scenes/living-empty.jpg', 'assets/scenes/balcony-empty.jpg', 'assets/scenes/march-empty.jpg', 'assets/scenes/garage-empty.jpg', 'assets/scenes/bedroom-empty.jpg', 'assets/scenes/stairs-day.jpg', 'assets/scenes/celebrate-empty.jpg', 'assets/scenes/gift.jpg', 'assets/cats/thumb-clover.png', 'assets/scenes/bedroom-window.png', 'assets/scenes/sky-cloud-a.png', 'assets/scenes/sky-cloud-b.png', 'assets/scenes/sky-cloud-c.png', ..._planArt];
   Future<void> settle(WidgetTester t) async {
     for (var i = 0; i < 8; i++) {
       await t.pump(const Duration(milliseconds: 100));
@@ -353,14 +438,22 @@ void main() {
       'bloom.journal.v1': jsonEncode({'start': dayKey(start), 'effort': 4.0, 'days': {}}),
     });
   });
-  testWidgets('urge', (t) => _shot(t, 'urge', const UrgeScreen(), assets: ['assets/scenes/craving-surf.jpg']));
-  testWidgets('urge-breathe', (t) => _shot(t, 'urge-breathe', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg'], then: (t) async {
+  const urgeArt = ['assets/urge/water.webp', 'assets/urge/breathe.webp', 'assets/urge/walk.webp', 'assets/urge/room.webp'];
+  testWidgets('urge', (t) => _shot(t, 'urge', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', ...urgeArt]));
+  // Each quiet task has a room of its own: water in her kitchen, a breath in her window nook.
+  testWidgets('urge-water', (t) => _shot(t, 'urge-water', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-kitchen.jpg', ...urgeArt], then: (t) async {
+        await t.tap(find.text('Drink a glass of water'));
+        for (var i = 0; i < 20; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
+  testWidgets('urge-breathe', (t) => _shot(t, 'urge-breathe', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-nook.jpg', ...urgeArt], then: (t) async {
         await t.tap(find.text('Breathe with me'));
         for (var i = 0; i < 20; i++) {
           await t.pump(const Duration(milliseconds: 100));
         }
       }));
-  testWidgets('urge-ask', (t) => _shot(t, 'urge-ask', const UrgeScreen(), assets: ['assets/scenes/ready-empty.jpg'], then: (t) async {
+  testWidgets('urge-ask', (t) => _shot(t, 'urge-ask', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-kitchen.jpg', ...urgeArt], then: (t) async {
         await t.tap(find.text('Drink a glass of water'));
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('Done'));

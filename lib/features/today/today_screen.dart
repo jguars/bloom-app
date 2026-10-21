@@ -12,6 +12,7 @@ import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
 import '../../data/journal.dart';
+import '../../data/streak.dart';
 import '../../data/today.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
@@ -22,6 +23,7 @@ import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/speech_bubble.dart';
+import '../streak/streak_screens.dart' show StreakPatchScreen;
 import '../urge/urge_screen.dart';
 import 'check_in_sheet.dart';
 import 'exercise_picker.dart';
@@ -40,6 +42,7 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, WidgetsBindingObserver {
   static const _offeredKey = 'bloom.checkin.offered';
   final _chipKey = GlobalKey();
+  final _scroll = ScrollController();
 
   /// The day the check-in last opened by itself, so it only does once.
   String? _offered;
@@ -64,6 +67,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
 
   /// The next Today visit is a welcome: the app just opened, or came back from the background.
   bool _welcome = true, _away = false;
+
+  /// The missed-day gap a Paw Patch was last offered for (offered once per gap).
+  String? _patchOffered;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -104,6 +110,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _lazyTimer?.cancel();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -165,6 +172,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
       _autoScheduled = true;
       Future.delayed(const Duration(milliseconds: 1400), () => _autoOpen(s.day));
     }
+    // Missed a day (or two) with a streak worth saving: offer a Paw Patch, once per gap.
+    final gap = ref.watch(streakNowProvider).gap;
+    if (gap != null && visible && journal.loaded && ref.watch(streakProvider.select((x) => x.loaded)) && _patchOffered != gap.from) {
+      _patchOffered = gap.from;
+      final nav = Navigator.of(context);
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) nav.push(bloomRoute(StreakPatchScreen(gap: gap)));
+      });
+    }
     final mq = MediaQuery.of(context);
     final sceneH = (mq.size.height * .47).clamp(340.0, 470.0);
     final now = DateTime.now();
@@ -205,6 +221,105 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
                     ),
             ),
           ),
+          // As in the other rooms: the room collapses as the day's moves scroll. The scene and her line slide away,
+          // the title docks as a slim bar (the craving button stays on it), so the cards get most of the screen.
+          CustomScrollView(
+            controller: _scroll,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTapUp: (d) => _tickle(d.globalPosition),
+                  child: SizedBox(
+                    height: sceneH - 70,
+                    child: Stack(clipBehavior: Clip.none, children: [
+                      Positioned(
+                        left: 140,
+                        right: 16,
+                        top: sceneH * (missed ? .17 : .33),
+                        child: IgnorePointer(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ArrivedPop(
+                              shown: arrived,
+                              child: SpeechBubble(
+                                text: _tickled || _lazy == _Lazy.gettingUp
+                                    ? 'Hehe! That tickles.'
+                                    : _lazy == _Lazy.stirred
+                                    ? 'Mm? Five more minutes…'
+                                    : evening && checkIn != null
+                                    ? checkIn.reply
+                                    : missed
+                                    ? 'I saved you a spot on the mat.'
+                                    : _lines[s.done.clamp(0, 3)],
+                                alternate: _tickled ? null : 'Psst… I’m ticklish. Tap me!',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: DockHeader(
+                  title: 'Move with Clover',
+                  subtitle: Text(
+                    s.goalMet ? 'Today · day complete' : 'Today · ${s.done} of ${s.set.length} done',
+                    style: BloomText.bodyMuted.copyWith(fontSize: 15),
+                  ),
+                  // Help when a craving hits, beside the day's title (the room's moves are counted by the cards).
+                  trailing: _CravingButton(onTap: () => Navigator.of(context).push(bloomRoute(const UrgeScreen()))),
+                  keepTrailing: true,
+                  pinned: const [],
+                  top: mq.padding.top,
+                  // the paw chip floats at the right of the slim bar
+                  trailingGap: 104,
+                  titleBlock: 112,
+                  trailingBeside: true,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  color: BloomColors.surface,
+                  constraints: BoxConstraints(minHeight: DockHeader.listMin(mq, false)),
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 96 + mq.padding.bottom),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 480),
+                        switchInCurve: BloomMotion.spring,
+                        switchOutCurve: BloomMotion.leave,
+                        transitionBuilder: (child, a) => FadeTransition(
+                          opacity: a,
+                          child: SlideTransition(
+                            position: Tween(begin: const Offset(.25, 0), end: Offset.zero).animate(a),
+                            child: RotationTransition(turns: Tween(begin: .012, end: 0.0).animate(a), child: child),
+                          ),
+                        ),
+                        child: s.goalMet
+                            ? _DoneCard(key: const ValueKey('done'), state: s, onExtra: _pickExtra, onFun: _pickFun)
+                            : _SetCard(key: const ValueKey('set'), state: s, onGo: _open, onSwap: (i) => ref.read(todayProvider.notifier).swap(i)),
+                      ),
+                      if (evening) ...[
+                        const SizedBox(height: 12),
+                        RiseIn(
+                          delay: const Duration(milliseconds: 200),
+                          child: _CheckInRow(answer: checkIn, onTap: _openCheckIn),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SliverFillRemaining(hasScrollBody: false, child: ColoredBox(color: BloomColors.surface)),
+            ],
+          ),
+          // The date (fading out as the room docks, where the slim title takes its place) and the paws.
           Positioned(
             left: 16,
             right: 16,
@@ -212,82 +327,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _Pill('${wd[now.weekday - 1]}, ${mo[now.month - 1]} ${now.day}'),
+                AnimatedBuilder(
+                  animation: _scroll,
+                  builder: (context, child) {
+                    final off = _scroll.hasClients ? _scroll.offset : 0.0;
+                    final o = (1 - (off - (sceneH - 170)) / 70).clamp(0.0, 1.0);
+                    return IgnorePointer(ignoring: o < .5, child: Opacity(opacity: o, child: child));
+                  },
+                  child: _Pill('${wd[now.weekday - 1]}, ${mo[now.month - 1]} ${now.day}'),
+                ),
                 PawChip(key: _chipKey, paws: s.paws),
               ],
-            ),
-          ),
-          Positioned(
-            left: 140,
-            right: 16,
-            top: sceneH * (missed ? .17 : .33),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ArrivedPop(
-                shown: arrived,
-                child: SpeechBubble(
-                  text: _tickled || _lazy == _Lazy.gettingUp
-                      ? 'Hehe! That tickles.'
-                      : _lazy == _Lazy.stirred
-                      ? 'Mm? Five more minutes…'
-                      : evening && checkIn != null
-                      ? checkIn.reply
-                      : missed
-                      ? 'I saved you a spot on the mat.'
-                      : _lines[s.done.clamp(0, 3)],
-                  alternate: _tickled ? null : 'Psst… I’m ticklish. Tap me!',
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            top: sceneH - 40,
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 96 + mq.padding.bottom),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(s.goalMet ? 'TODAY · DAY COMPLETE' : 'TODAY · ${s.done} OF ${s.set.length}', style: BloomText.label),
-                            Text('Move with Clover', style: BloomText.title),
-                          ],
-                        ),
-                      ),
-                      // Help when a craving hits, beside the day's title (the room's moves are counted by the cards).
-                      _CravingButton(onTap: () => Navigator.of(context).push(bloomRoute(const UrgeScreen()))),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 480),
-                    switchInCurve: BloomMotion.spring,
-                    switchOutCurve: BloomMotion.leave,
-                    transitionBuilder: (child, a) => FadeTransition(
-                      opacity: a,
-                      child: SlideTransition(
-                        position: Tween(begin: const Offset(.25, 0), end: Offset.zero).animate(a),
-                        child: RotationTransition(turns: Tween(begin: .012, end: 0.0).animate(a), child: child),
-                      ),
-                    ),
-                    child: s.goalMet
-                        ? _DoneCard(key: const ValueKey('done'), state: s, onExtra: _pickExtra, onFun: _pickFun)
-                        : _SetCard(key: const ValueKey('set'), state: s, onGo: _open, onSwap: (i) => ref.read(todayProvider.notifier).swap(i)),
-                  ),
-                  if (evening) ...[
-                    const SizedBox(height: 12),
-                    RiseIn(
-                      delay: const Duration(milliseconds: 200),
-                      child: _CheckInRow(answer: checkIn, onTap: _openCheckIn),
-                    ),
-                  ],
-                ],
-              ),
             ),
           ),
         ],

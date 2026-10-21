@@ -39,25 +39,50 @@ enum CloverScene {
   /// her line hangs over her first spot, by the white flowers.
   plan('assets/rive/plan_scene.riv', 'PlanScene', 'assets/scenes/balcony-empty.jpg', Alignment(-.3, 0), Offset(560, 435), Size(1100, 842)),
 
-  /// The hallway (Progress tab). Her milestone portraits hang in the frames (the app paints them, see
-  /// [hallFrames]); after 2 s she walks in from the left and daydreams under the next empty one.
-  /// Framed left of centre so the door and all five frames show. Her head depends on the frame, so the
-  /// Progress room passes it in.
-  progress('assets/rive/progress_scene.riv', 'ProgressScene', 'assets/scenes/hallway-empty.jpg', Alignment(-.6, 0), Offset(512, 455), Size(1100, 842)),
+  /// The stairs up to the next floor (Progress tab). Her milestone portraits climb the wall beside them (the app
+  /// hangs them in the painted frames, see [hallFrames]); after 2 s she comes up from downstairs and climbs to the
+  /// step under the next empty frame to daydream, or (every milestone reached) all the way to the landing. Painted
+  /// by day and by night (the view's [CloverSceneView.night]). Her head depends on her step: see [stairHead].
+  progress('assets/rive/progress_scene.riv', 'StairsScene', 'assets/scenes/stairs-day.jpg', Alignment.center, Offset(391, 319), Size(760, 760)),
 
   /// The bedroom (Profile tab). After 2 s she walks in from the left and tidies her bookshelf. The art is
   /// padded (wall above, floor below, wall on the right) and framed right of centre, so the shelf on the
   /// left and the round window and lamp on the right sit evenly in view. The window's sky is live (BedroomWindow).
-  profile('assets/rive/profile_scene.riv', 'ProfileScene', 'assets/scenes/bedroom-empty.jpg', Alignment(.82, 0), Offset(560, 517), Size(1160, 942));
+  profile('assets/rive/profile_scene.riv', 'ProfileScene', 'assets/scenes/bedroom-empty.jpg', Alignment(.82, 0), Offset(560, 517), Size(1160, 942)),
 
-  /// The hallway's five frame openings (the mats inside the wood), in artboard units.
+  /// The sea (Craving screen): she rides the craving out on her surfboard in front of the wave, sips water, or
+  /// breathes with you ([CloverAction.cravingSurf] and on).
+  craving('assets/rive/craving_scene.riv', 'CravingScene', 'assets/scenes/craving-sea.jpg', Alignment.center, Offset(585, 344), Size(1100, 842)),
+
+  /// A sunny kitchen corner (Craving: "Drink a glass of water"): she stands at the counter with her glass and sips with
+  /// you ([CloverAction.cravingWater]).
+  cravingWater('assets/rive/craving_water.riv', 'WaterScene', 'assets/scenes/craving-kitchen.jpg', Alignment.center, Offset(540, 548), Size(1100, 856)),
+
+  /// A dusk window nook (Craving: "Breathe with me"): she sits cross-legged on a floor cushion and breathes with you,
+  /// 5 s in and 5 s out ([CloverAction.cravingBreathe]).
+  cravingBreathe('assets/rive/craving_breathe.riv', 'BreatheScene', 'assets/scenes/craving-nook.jpg', Alignment.center, Offset(540, 440), Size(1100, 856));
+
+  /// The stairwell's five frame openings (the mats inside the wood), bottom to top, in artboard units.
   static const hallFrames = [
-    Rect.fromLTRB(214, 214, 293, 305),
-    Rect.fromLTRB(347, 214, 424, 305),
-    Rect.fromLTRB(475, 214, 551, 305),
-    Rect.fromLTRB(601, 214, 672, 305),
-    Rect.fromLTRB(721, 214, 790, 305),
+    Rect.fromLTRB(91, 247, 148, 321),
+    Rect.fromLTRB(185, 191, 236, 260),
+    Rect.fromLTRB(269, 139, 314, 206),
+    Rect.fromLTRB(345, 90, 386, 155),
+    Rect.fromLTRB(416, 50, 454, 111),
   ];
+
+  /// The top of her head on the stairs, while the next milestone is frame [next] (1-4), or on the landing once
+  /// they're all reached (artboard units; her steps are in stairs.py).
+  static Offset stairHead(int? next) => switch (next) {
+        1 => const Offset(284, 439),
+        2 => const Offset(391, 319),
+        3 => const Offset(492, 211),
+        4 => const Offset(573, 121),
+        _ => const Offset(640, 103),
+      };
+
+  /// The painting shown where Rive can't draw (widget tests): the night one after dark, where there is one.
+  String fallbackAt({bool night = false}) => night && this == progress ? 'assets/scenes/stairs-night.jpg' : fallback;
 
   const CloverScene(this.asset, this.artboard, this.fallback, [this.alignment = Alignment.bottomCenter, this.head, this.size]);
   final String asset, artboard;
@@ -133,7 +158,7 @@ enum CloverScene {
 /// Plays a [CloverScene] filling [height] (anchored per scene, so her feet
 /// never crop), fading into the panel below like the other scenes.
 class CloverSceneView extends StatefulWidget {
-  const CloverSceneView({super.key, required this.scene, required this.height, this.walking = false, this.eyesOpen = false, this.cheering = false, this.action, this.overlay, this.fadeHeight = 48, this.alignment});
+  const CloverSceneView({super.key, required this.scene, required this.height, this.walking = false, this.eyesOpen = false, this.cheering = false, this.action, this.overlay, this.fadeHeight = 48, this.alignment, this.night = false});
   final CloverScene scene;
   final double height;
 
@@ -156,6 +181,9 @@ class CloverSceneView extends StatefulWidget {
   /// Frames the art differently from the scene's own [CloverScene.alignment] (onboarding's shorter stage).
   final Alignment? alignment;
 
+  /// After dark: scenes painted by night too (the stairs) fade to it.
+  final bool night;
+
   @override
   State<CloverSceneView> createState() => _CloverSceneViewState();
 }
@@ -164,7 +192,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   rive.RiveWidgetController? _controller;
   rive.ViewModelInstance? _vm;
   rive.ViewModelInstanceBoolean? _walking, _eyes;
-  rive.ViewModelInstanceNumber? _action;
+  rive.ViewModelInstanceNumber? _action, _night;
 
   /// What she's wearing, one number per slot (see [Worn]).
   final _wear = <OutfitSlot, rive.ViewModelInstanceNumber?>{};
@@ -193,6 +221,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   /// Lets go of the live scene and its file.
   void _drop() {
     _walking?.dispose();
+    _night?.dispose();
     _action?.dispose();
     _eyes?.dispose();
     _vm?.dispose();
@@ -201,7 +230,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
       n?.dispose();
     }
     _wear.clear();
-    _walking = _action = null;
+    _walking = _action = _night = null;
     _eyes = null;
     _vm = null;
     _controller = null;
@@ -260,6 +289,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
         _walking = vm.boolean('walking');
         _action = vm.number('action');
         _eyes = vm.boolean('eyesOpen');
+        _night = vm.number('night');
         for (final slot in OutfitSlot.values) {
           _wear[slot] = vm.number('wear${_rigSlot[slot]}');
         }
@@ -281,6 +311,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
                 : CloverAction.rest);
     _action?.value = action.value.toDouble();
     _eyes?.value = widget.eyesOpen;
+    _night?.value = widget.night ? 1 : 0;
     _dress();
   }
 
@@ -296,7 +327,7 @@ class _CloverSceneViewState extends State<CloverSceneView> {
   @override
   void didUpdateWidget(CloverSceneView old) {
     super.didUpdateWidget(old);
-    if (old.walking != widget.walking || old.eyesOpen != widget.eyesOpen || old.cheering != widget.cheering || old.action != widget.action) _push();
+    if (old.walking != widget.walking || old.eyesOpen != widget.eyesOpen || old.cheering != widget.cheering || old.action != widget.action || old.night != widget.night) _push();
   }
 
   @override
@@ -311,11 +342,12 @@ class _CloverSceneViewState extends State<CloverSceneView> {
 
   @override
   Widget build(BuildContext context) {
+
     final c = _controller;
     final Widget art;
     if (_failed) {
       art = Stack(fit: StackFit.expand, children: [
-        Image.asset(widget.scene.fallback, fit: BoxFit.cover, alignment: widget.alignment ?? widget.scene.alignment),
+        Image.asset(widget.scene.fallbackAt(night: widget.night), fit: BoxFit.cover, alignment: widget.alignment ?? widget.scene.alignment),
         Positioned(left: 0, right: 0, bottom: widget.height * .17, child: SizedBox(height: widget.height * .36, child: const CloverStill())),
       ]);
     } else if (c == null) {

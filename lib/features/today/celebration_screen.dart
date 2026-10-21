@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/sfx.dart';
 import '../../app/theme.dart';
 import '../../data/exercises.dart';
+import '../../data/journal.dart';
+import '../../data/streak.dart';
 import '../../data/today.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/day_ring.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
+import '../streak/streak_screens.dart';
 import 'flow.dart';
 
 /// The payoff: Clover leaps in the living room, confetti bursts three times,
@@ -102,6 +105,11 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
                   glow: true,
                   leading: widget.reward.paws > 0 ? const PawIcon(color: BloomColors.ink, size: 20) : null,
                   onPressed: () {
+                    // The day's first move: the streak celebration next (it hands the reward on to Today).
+                    if (ref.read(streakProvider.notifier).celebrationDue(ref.read(journalProvider))) {
+                      Navigator.of(context).pushReplacement(bloomRoute(StreakCelebrationScreen(reward: widget.reward)));
+                      return;
+                    }
                     ref.read(pendingRewardProvider.notifier).set(widget.reward);
                     Navigator.of(context).pop();
                   },

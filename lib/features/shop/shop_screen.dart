@@ -82,6 +82,8 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       room: Room.shop,
       line: line,
       title: 'Shop',
+      // Bloom Plus, on the title row like the Plan's photo check.
+      titleTrailing: _PlusButton(active: plus, onTap: _plus),
       panel: _tab,
       line2: 'Every move we do earns us paws.',
       subtitle: Text(
@@ -399,4 +401,40 @@ class _BuySheet extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Bloom Plus on the Shop's title row: a forest pill like the Plan's "On my plan?" (44 tall, a white disc with the
+/// sparkle, then the label), the green of the PLUS badges on the gear. Opens the paywall.
+class _PlusButton extends StatelessWidget {
+  const _PlusButton({required this.active, required this.onTap});
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: active ? 'Bloom Plus, active' : 'Get Bloom Plus',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
+            decoration: BoxDecoration(
+              color: BloomColors.forest,
+              borderRadius: BorderRadius.circular(BloomSpace.rPill),
+              boxShadow: const [BoxShadow(color: Color(0x332E3826), blurRadius: 10, offset: Offset(0, 4))],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(color: BloomColors.surface, shape: BoxShape.circle),
+                child: Icon(active ? Icons.check_rounded : Icons.auto_awesome_rounded, size: 19, color: BloomColors.mustard),
+              ),
+              const SizedBox(width: 8),
+              Text('Plus', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.onForest)),
+            ]),
+          ),
+        ),
+      );
 }

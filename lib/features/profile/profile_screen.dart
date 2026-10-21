@@ -62,6 +62,9 @@ class ProfileScreen extends ConsumerWidget {
           child: Padding(padding: const EdgeInsets.symmetric(vertical: 4), child: Text('Edit names', style: BloomText.button.copyWith(fontSize: 15, color: BloomColors.forest))),
         ),
       ]),
+      // As in the other rooms: the bedroom slides away as the page scrolls, and the title docks as a slim bar.
+      pinned: const [],
+      titleBlock: 100,
       children: [
         const Eyebrow('This week'),
         const SizedBox(height: 10),

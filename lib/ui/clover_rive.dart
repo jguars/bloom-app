@@ -81,7 +81,13 @@ enum CloverAction {
   exTreadWalk(35),
   exIncline(36),
   exHang(37),
-  exKneeRaise(38);
+  exKneeRaise(38),
+
+  /// The Craving screen (riding the urge out on her surfboard, CloverScene.craving): surfing the swell, sipping a
+  /// glass of water, and slow breaths (5 s in, 5 s out, in step with the screen's cues; it starts on an in-breath).
+  cravingSurf(39),
+  cravingWater(40),
+  cravingBreathe(41);
 
   /// How long [todayGetUp] takes, from the tickle to standing on the rug.
   static const getUpTime = Duration(milliseconds: 4500);

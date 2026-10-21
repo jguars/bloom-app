@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/feel.dart';
+import '../../app/clock.dart';
 import '../../app/motion.dart';
 import '../../app/sfx.dart';
 import '../../app/shell.dart';
@@ -17,6 +18,7 @@ import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
+import '../streak/streak_screens.dart' show StreakChip;
 import 'journey.dart';
 import 'panels.dart';
 import 'weight_sheet.dart';
@@ -70,6 +72,12 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     }
   }
 
+  /// The stairwell's night painting, from late evening until dawn (as the living room's light, RoomLight).
+  static bool _night(DateTime t) {
+    final h = t.hour + t.minute / 60;
+    return h >= 19.5 || h < 6;
+  }
+
   void _setView(int i) => setState(() {
         _view = i;
         _reply = null;
@@ -98,22 +106,28 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                     ? 'Our road starts here!'
                     : 'Look how far we’ve come!');
     return RoomFrame(
-      asset: 'assets/scenes/hallway.jpg',
+      asset: 'assets/scenes/stairs-day.jpg',
       // She daydreams under the next milestone's empty frame (or admires the full gallery).
       scene: CloverScene.progress,
       action: CloverAction.hallFor(nextIndex),
       room: Room.progress,
-      head: Offset(nextIndex == null ? 512 : CloverScene.hallFrames[nextIndex].center.dx, 455),
+      head: CloverScene.stairHead(nextIndex),
+      night: _night(ref.watch(clockProvider)()),
       sceneOverlay: _Portraits(reached: milestones.where(journal.reached).length),
       onSceneTap: _tapScene,
       line: line,
       bubbleLeft: 150,
       title: 'Progress',
+      // The streak sits on the title row, as the Plan's photo check and the Shop's Plus do.
+      titleTrailing: const StreakChip(),
       line2: 'Every flag we reach gets a portrait here!',
       subtitle: Text(subtitle, style: BloomText.bodyMuted.copyWith(fontSize: 15)),
-      children: [
+      panel: _view,
+      // As in the Shop and the Plan: the stairs slide away as the panels scroll, and the switch docks.
+      pinned: [
         SegmentedSwitch(labels: const ['Together', 'Habits', 'Weight'], index: _view, onChanged: _setView),
-        const SizedBox(height: 16),
+      ],
+      children: [
         SwipePanels(
           index: _view,
           count: 3,

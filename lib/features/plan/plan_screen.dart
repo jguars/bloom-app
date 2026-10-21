@@ -269,7 +269,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     if (paws > 0) FxLayer.burst(c, count: 14, power: .45);
   }
 
-  /// A repeatable rule: one more log, with an undo, since the card slips away from under the finger.
+  /// A repeatable rule: one more log (a log is final: no undo).
   void _log() {
     final notifier = ref.read(planProvider.notifier);
     final r = widget.rule;
@@ -280,28 +280,19 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
     final n = ref.read(planProvider).count(r.id);
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(_snack(
-      r.kind == PlanKind.more ? '${r.title} · $n today' : 'Said no · ${r.title.toLowerCase()} · $n today',
-      'Undo',
-      () => notifier.unlog(r.id),
-    ));
+    messenger.showSnackBar(_snack(r.kind == PlanKind.more ? '${r.title} · $n today' : 'Said no · ${r.title.toLowerCase()} · $n today'));
   }
 
-  /// A once-a-day rule: a tick, or untick.
+  /// A once-a-day rule: a tick. Once ticked it stays ticked for the day.
   void _tick() {
-    final on = ref.read(planProvider.notifier).toggle(widget.rule.id);
-    if (on) {
-      Feel.lightImpact();
-      SfxPlayer.instance.play(Sfx.check);
-      _fly(kPawsPerRule);
-    } else {
-      Feel.selectionClick();
-      SfxPlayer.instance.play(Sfx.uncheck);
-    }
+    if (!ref.read(planProvider.notifier).keep(widget.rule.id)) return;
+    Feel.lightImpact();
+    SfxPlayer.instance.play(Sfx.check);
+    _fly(kPawsPerRule);
     widget.onLogged();
   }
 
-  SnackBar _snack(String text, String action, VoidCallback onAction) => SnackBar(
+  SnackBar _snack(String text) => SnackBar(
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
         persist: false,
@@ -309,7 +300,6 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
         backgroundColor: BloomColors.ink,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BloomSpace.rMd)),
         content: Text(text, style: BloomText.body.copyWith(color: BloomColors.surface), maxLines: 1, overflow: TextOverflow.ellipsis),
-        action: SnackBarAction(label: action, textColor: BloomColors.mustard, onPressed: onAction),
       );
 
   String _meta() {

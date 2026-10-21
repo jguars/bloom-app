@@ -12,20 +12,30 @@ import '../../data/today.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
-import '../../ui/scene.dart';
+import '../../ui/clover_rive.dart';
+import '../../ui/clover_scene.dart';
 import '../../ui/speech_bubble.dart';
 
 /// Something small to do with Clover until a craving passes.
 enum UrgeTask {
-  water('Drink a glass of water', 'Slow sips. Cravings often start as thirst.', Icons.water_drop_rounded, 45),
-  breathe('Breathe with me', 'Four slow breaths, in and out together.', Icons.air_rounded, 40),
-  walk('A short walk', 'Three minutes, anywhere. I’ll march along.', Icons.directions_walk_rounded, 180),
-  room('Change rooms', 'New place, new thoughts. Look out a window.', Icons.door_front_door_outlined, 60);
+  water('Drink a glass of water', 'Slow sips. Cravings often start as thirst.', 'assets/urge/water.webp', 45),
+  breathe('Breathe with me', 'Four slow breaths, in and out together.', 'assets/urge/breathe.webp', 40),
+  walk('A short walk', 'Three minutes, anywhere. I’ll march along.', 'assets/urge/walk.webp', 180),
+  room('Change rooms', 'New place, new thoughts. Look out a window.', 'assets/urge/room.webp', 60);
 
-  const UrgeTask(this.title, this.caption, this.icon, this.seconds);
+  const UrgeTask(this.title, this.caption, this.art, this.seconds);
   final String title, caption;
-  final IconData icon;
+
+  /// Its painted icon.
+  final String art;
   final int seconds;
+
+  /// Where she does it with you: water in her kitchen, breaths in her window nook, the rest riding the wave.
+  CloverScene get scene => switch (this) {
+        water => CloverScene.cravingWater,
+        breathe => CloverScene.cravingBreathe,
+        _ => CloverScene.craving,
+      };
 }
 
 enum _Stage { pick, doing, ask, done }
@@ -121,11 +131,17 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
         _Stage.done => 'You did that! Proud of you.',
       };
 
-  // Just left of her cheek in craving-surf.jpg (1100x842), mapped through the scene's cover fit.
-  static const _art = Size(1100, 842), _head = Offset(478, 400);
-  double _k(double w, double h) => w / _art.width > h / _art.height ? w / _art.width : h / _art.height;
-  double _headX(double w, double h) => (w - _art.width * _k(w, h)) / 2 + _head.dx * _k(w, h);
-  double _headY(double w, double h) => (h - _art.height * _k(w, h)) / 2 + _head.dy * _k(w, h);
+  /// The scene on show: the task's own room while doing it, otherwise the wave.
+  CloverScene get _scene => _stage == _Stage.doing ? _task!.scene : CloverScene.craving;
+
+  // Just left of her cheek in each scene (artboard units), mapped through the scene's cover fit.
+  static const _cheek = {CloverScene.craving: Offset(530, 390), CloverScene.cravingWater: Offset(492, 560), CloverScene.cravingBreathe: Offset(494, 470)};
+  double _k(double w, double h) {
+    final art = _scene.size!;
+    return w / art.width > h / art.height ? w / art.width : h / art.height;
+  }
+  double _headX(double w, double h) => (w - _scene.size!.width * _k(w, h)) / 2 + _cheek[_scene]!.dx * _k(w, h);
+  double _headY(double w, double h) => (h - _scene.size!.height * _k(w, h)) / 2 + _cheek[_scene]!.dy * _k(w, h);
 
   @override
   Widget build(BuildContext context) {
@@ -138,14 +154,18 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
           left: 0,
           right: 0,
           top: 0,
-          // Clover riding the craving out like a wave (painted). The sea bobs gently; on the
-          // breathing task it swells with each breath.
-          child: Scene(
-            asset: 'assets/scenes/craving-surf.jpg',
+          // Clover riding the craving out like a wave, on her surfboard; for water she's in her kitchen, for a breath
+          // in her window nook, doing it with you.
+          child: CloverSceneView(
+            key: ValueKey(_scene),
+            scene: _scene,
             height: sceneH,
             fadeHeight: 80,
-            motion: _stage == _Stage.doing && _task == UrgeTask.breathe ? SceneMotion.beat : SceneMotion.drift,
-            motes: false,
+            action: switch ((_stage, _task)) {
+              (_Stage.doing, UrgeTask.water) => CloverAction.cravingWater,
+              (_Stage.doing, UrgeTask.breathe) => CloverAction.cravingBreathe,
+              _ => CloverAction.cravingSurf,
+            },
           ),
         ),
         Positioned(
@@ -276,10 +296,11 @@ class _TaskTile extends StatelessWidget {
             ),
             child: Row(children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(color: BloomColors.forestSoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-                child: Icon(task.icon, color: BloomColors.forest),
+                child: Image.asset(task.art, fit: BoxFit.contain),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -288,6 +309,7 @@ class _TaskTile extends StatelessWidget {
                   Text(task.caption, style: BloomText.caption),
                 ]),
               ),
+              const SizedBox(width: 10),
               Text(task.seconds >= 60 ? '${task.seconds ~/ 60} min' : '${task.seconds} s', style: BloomText.caption.copyWith(color: BloomColors.ink)),
             ]),
           ),

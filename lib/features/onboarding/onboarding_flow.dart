@@ -389,7 +389,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         return (
           const StageSpec.room(CloverScene.progress, action: CloverAction.hallGaze2, ambience: AmbienceKind.dust),
           you.isEmpty ? 'Hang on. I’m drawing our road…' : 'Hang on, $you. I’m drawing our road…',
-          const Alignment(.7, .25),
+          // Over the landing, clear of her on the stairs.
+          const Alignment(.85, -.2),
         );
       case _Step.journey:
         return (

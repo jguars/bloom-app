@@ -7,6 +7,7 @@ import '../../data/profile.dart';
 import '../../ui/bits.dart';
 import '../../ui/room_frame.dart';
 import '../alarm/alarms_screen.dart';
+import '../lab/move_lab_screen.dart';
 import '../onboarding/onboarding_flow.dart' show pickTime;
 import '../today/flow.dart';
 import 'widget_sheet.dart';
@@ -84,6 +85,13 @@ class SettingsScreen extends ConsumerWidget {
             caption: 'Clover and today’s moves at a glance',
             onTap: () => showBloomSheet<void>(context, (c) => const WidgetSheet()),
           ),
+          // Test builds only (LAB=true): every move, in preview. Compiled out of normal builds.
+          if (MoveLabScreen.enabled)
+            GroupRow(
+              title: 'Move lab',
+              caption: 'Test build · try every move, nothing is saved',
+              onTap: () => Navigator.of(context).push(bloomRoute(const MoveLabScreen())),
+            ),
           GroupRow(title: 'Account', caption: 'Guest · everything stays on this phone'),
           GroupRow(
             title: 'Start over from onboarding',

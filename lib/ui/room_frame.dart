@@ -37,12 +37,15 @@ class RoomFrame extends ConsumerStatefulWidget {
     this.room,
     this.head,
     this.sceneOverlay,
+    this.night = false,
     this.pinned,
     this.topLeft,
+    this.topRight,
     this.titleTrailing,
     this.line2,
     this.onSceneTap,
     this.panel,
+    this.titleBlock = 92,
   });
 
   final String asset, line, title;
@@ -66,12 +69,18 @@ class RoomFrame extends ConsumerStatefulWidget {
   /// Painted over the scene's art (e.g. the hallway's portraits), sized to the scene.
   final Widget? sceneOverlay;
 
-  /// When set, the scene and a pane with the title, subtitle and these widgets (e.g. the Shop's
-  /// sub-panel switch) stay frozen, and only [children] scroll, sliding away under the pane.
+  /// After dark (rooms painted by night too).
+  final bool night;
+
+  /// When set, the room collapses as its list scrolls: the scene goes, the title docks as a slim bar, and these
+  /// widgets (e.g. the Shop's sub-panel switch; may be empty) dock under it, so the list gets most of the screen.
   final List<Widget>? pinned;
 
   /// A small button pinned to the scene's top-left corner (e.g. the Profile's settings gear).
   final Widget? topLeft;
+
+  /// A small chip pinned to the scene's top-right corner (e.g. the Progress streak).
+  final Widget? topRight;
 
   /// Sits on the title's row, at the right (e.g. the Plan's photo check).
   final Widget? titleTrailing;
@@ -81,6 +90,9 @@ class RoomFrame extends ConsumerStatefulWidget {
 
   /// Which sub-panel is showing, with [pinned]: switching it while docked keeps the room collapsed.
   final Object? panel;
+
+  /// With [pinned]: the open title block's height (taller for a subtitle row with a button).
+  final double titleBlock;
 
   /// How tall a live scene is on this screen.
   static double sceneHeight(MediaQueryData mq) => (mq.size.height * .47).clamp(340.0, 470.0);
@@ -101,7 +113,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
     // A new panel while docked starts at the top of the docked list, not back at the scene.
     if (widget.panel != old.panel && _scroll.hasClients) {
       final mq = MediaQuery.of(context);
-      final docked = RoomFrame.sceneHeight(mq) - 70 + _DockHeader.travel(mq.padding.top);
+      final docked = RoomFrame.sceneHeight(mq) - 70 + DockHeader.travel(mq.padding.top, widget.titleBlock);
       if (_scroll.offset > docked) _scroll.jumpTo(docked);
     }
   }
@@ -176,7 +188,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
             child: scene != null && !onShow
                 ? SizedBox(height: sceneH)
                 : scene != null
-                ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, fadeHeight: 72)
+                ? CloverSceneView(key: ValueKey('${widget.action}-$visit'), scene: scene, height: sceneH, action: widget.action, overlay: widget.sceneOverlay, night: widget.night, fadeHeight: 72)
                 : Scene(asset: asset, height: sceneH, fadeHeight: 62),
           ),
           if (widget.pinned case final pinned?)
@@ -194,14 +206,16 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                 ),
                 SliverPersistentHeader(
                   pinned: true,
-                  delegate: _DockHeader(
+                  delegate: DockHeader(
                     title: title,
                     subtitle: subtitle,
                     trailing: widget.titleTrailing,
                     pinned: pinned,
                     top: mq.padding.top,
-                    // Room on the slim bar's right for the paw chip, which floats there already.
-                    trailingGap: showPaws ? 110 : 0,
+                    // Room on the slim bar for what floats in the top corners already (paw chip, streak, settings).
+                    trailingGap: showPaws ? 110 : (widget.topRight != null ? 96 : 0),
+                    leadingGap: widget.topLeft != null ? 56 : 0,
+                    titleBlock: widget.titleBlock,
                   ),
                 ),
                 // The list on solid paper, down to the bottom of the screen, so the scene never shows
@@ -209,6 +223,8 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
                 SliverToBoxAdapter(
                   child: Container(
                     color: BloomColors.surface,
+                    // Never shorter than the screen under the docked bar, so even a short page can tuck the room away.
+                    constraints: BoxConstraints(minHeight: DockHeader.listMin(mq, pinned.isNotEmpty)),
                     padding: EdgeInsets.fromLTRB(16, 8, 16, 110 + mq.padding.bottom),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
                   ),
@@ -257,6 +273,7 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
               ],
             ),
           if (widget.topLeft case final tl?) Positioned(left: 16, top: mq.padding.top + 12, child: tl),
+          if (widget.topRight case final tr?) Positioned(right: 16, top: mq.padding.top + 12, child: tr),
           if (showPaws)
             Positioned(
               right: 16,
@@ -269,31 +286,45 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
   }
 }
 
-/// The title and the [pinned] switch of a collapsing room. Open, it's the soft lead-in from the scene,
-/// the big title and subtitle, then the switch. As the list scrolls it shrinks: the big title fades
-/// into a slim bar at the top of the screen, and the switch docks under it.
-class _DockHeader extends SliverPersistentHeaderDelegate {
-  _DockHeader({required this.title, required this.subtitle, required this.trailing, required this.pinned, required this.top, required this.trailingGap});
+/// The title and the [pinned] switch of a collapsing room (Shop, Plan, Progress, Profile, and Today's own
+/// layout). Open, it's the soft lead-in from the scene, the big title and subtitle, then the switch (if any). As the
+/// list scrolls it shrinks: the big title fades into a slim bar at the top of the screen, and the switch docks
+/// under it. [leadingGap] and [trailingGap] keep the slim bar clear of buttons floating in the top corners.
+class DockHeader extends SliverPersistentHeaderDelegate {
+  DockHeader({required this.title, required this.subtitle, required this.trailing, required this.pinned, required this.top, this.trailingGap = 0, this.leadingGap = 0, this.keepTrailing = false, this.titleBlock = 92, this.trailingBeside = false});
   final String title;
+
+  /// Keep [trailing] on the slim bar even beside a floating corner chip (Today's craving button).
+  final bool keepTrailing;
+
+  /// Open, [trailing] sits beside the title and subtitle together, centred on both (a big round button).
+  final bool trailingBeside;
   final Widget subtitle;
   final Widget? trailing;
   final List<Widget> pinned;
-  final double top, trailingGap;
+  final double top, trailingGap, leadingGap;
 
-  static const _lead = 40.0, _titleBlock = 92.0, _bar = 56.0, _switch = 64.0;
-  static double _open(double top) => math.max(_lead + _titleBlock, top + _bar + 8);
+  /// The open title and subtitle's height (taller when the title row carries a big button).
+  final double titleBlock;
+
+  static const _lead = 40.0, _bar = 56.0;
+  double get _switch => pinned.isEmpty ? 0 : 64.0;
+  static double _open(double top, double block) => math.max(_lead + block, top + _bar + 8);
+
+  /// The least height a docking room's list needs to scroll the room fully away (the screen under the docked bar).
+  static double listMin(MediaQueryData mq, bool withSwitch) => mq.size.height - (mq.padding.top + _bar + (withSwitch ? 64 : 0));
 
   /// How far the header shrinks between open and docked.
-  static double travel(double top) => _open(top) - (top + _bar);
+  static double travel(double top, [double block = 92]) => _open(top, block) - (top + _bar);
 
   @override
-  double get maxExtent => _open(top) + _switch;
+  double get maxExtent => _open(top, titleBlock) + _switch;
   @override
   double get minExtent => top + _bar + _switch;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final t = (shrinkOffset / travel(top)).clamp(0.0, 1.0);
+    final t = (shrinkOffset / travel(top, titleBlock)).clamp(0.0, 1.0);
     final big = (1 - t * 1.8).clamp(0.0, 1.0), slim = ((t - .55) / .45).clamp(0.0, 1.0);
     return Stack(fit: StackFit.expand, children: [
       // Solid under the title and switch; above them, the soft lead-in from the scene, which fills in
@@ -318,19 +349,33 @@ class _DockHeader extends SliverPersistentHeaderDelegate {
         left: 16,
         right: 16,
         bottom: _switch,
-        height: _titleBlock,
+        height: titleBlock,
         child: IgnorePointer(
           ignoring: big < .5,
           child: Opacity(
             opacity: big,
             child: Transform.translate(
               offset: Offset(0, -12 * t),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.end, children: [
-                RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?trailing])),
-                const SizedBox(height: 2),
-                RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
-                const SizedBox(height: 16),
-              ]),
+              child: trailingBeside
+                  ? Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.end, children: [
+                      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                            RiseIn(child: Text(title, style: BloomText.display)),
+                            const SizedBox(height: 2),
+                            RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
+                          ]),
+                        ),
+                        ?trailing,
+                      ]),
+                      const SizedBox(height: 16),
+                    ])
+                  : Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.end, children: [
+                      RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?trailing])),
+                      const SizedBox(height: 2),
+                      RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
+                      const SizedBox(height: 16),
+                    ]),
             ),
           ),
         ),
@@ -338,15 +383,20 @@ class _DockHeader extends SliverPersistentHeaderDelegate {
       // The slim bar, once docked.
       if (slim > 0)
         Positioned(
-          left: 16,
+          left: 16 + leadingGap,
           right: 16 + trailingGap,
           top: top,
           height: _bar,
           child: Opacity(
             opacity: slim,
             child: Row(children: [
-              Expanded(child: Text(title, style: BloomText.title.copyWith(fontSize: 22))),
+              Expanded(child: Text(title, style: BloomText.title.copyWith(fontSize: 22), maxLines: 1, softWrap: false, overflow: TextOverflow.fade)),
               if (trailingGap == 0) ?trailing,
+              // a big button kept on the slim bar shrinks to fit it
+              if (trailingGap != 0 && keepTrailing && trailing != null) ...[
+                const SizedBox(width: 8),
+                SizedBox(height: 42, child: FittedBox(child: trailing)),
+              ],
             ]),
           ),
         ),
@@ -362,8 +412,10 @@ class _DockHeader extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(_DockHeader old) =>
-      old.title != title || old.subtitle != subtitle || old.trailing != trailing || old.pinned != pinned || old.top != top || old.trailingGap != trailingGap;
+  bool shouldRebuild(DockHeader old) =>
+      old.title != title || old.subtitle != subtitle || old.trailing != trailing || old.pinned != pinned || old.top != top ||
+      old.trailingGap != trailingGap || old.leadingGap != leadingGap || old.keepTrailing != keepTrailing || old.titleBlock != titleBlock ||
+      old.trailingBeside != trailingBeside;
 }
 
 /// The soft fade from the scene into the panel, so the panel's top edge never shows as a line.
