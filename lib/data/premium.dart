@@ -63,6 +63,9 @@ class PremiumNotifier extends Notifier<Premium> {
     await _save();
   }
 
+  /// Cancels Plus. With no store connected (test purchases), it ends right away and she's on the free plan again.
+  Future<void> cancel() => reset();
+
   /// Debug: back to free.
   Future<void> reset() async {
     state = const Premium();

@@ -12,6 +12,8 @@ import 'package:bloom/data/today.dart';
 import 'dart:convert';
 
 import 'package:bloom/features/alarm/alarms_screen.dart';
+import 'package:bloom/data/borrowed.dart';
+import 'package:bloom/data/premium.dart';
 import 'package:bloom/features/alarm/ringing_screen.dart';
 import 'package:bloom/features/food/food_check_screen.dart';
 import 'package:bloom/features/onboarding/onboarding_flow.dart';
@@ -21,6 +23,7 @@ import 'package:bloom/features/profile/cat_picker.dart';
 import 'package:bloom/features/profile/plan_report_screen.dart';
 import 'package:bloom/features/profile/profile_screen.dart';
 import 'package:bloom/features/profile/settings_screen.dart';
+import 'package:bloom/features/profile/subscription_screen.dart';
 import 'package:bloom/features/profile/weekly_screen.dart';
 import 'package:bloom/features/profile/weight_history_screen.dart';
 import 'package:bloom/features/profile/widget_sheet.dart';
@@ -144,6 +147,12 @@ void main() {
         await t.tap(find.text('open'));
       }));
   testWidgets('session', (t) => _shot(t, 'session', const SessionScreen(ex: ex), assets: ['assets/scenes/march-empty.jpg']));
+  // Calf raises have a room of their own now: at the kitchen counter (after the 3-2-1).
+  testWidgets('session-calf', (t) => _shot(t, 'session-calf', SessionScreen(ex: exerciseById('calf_raises')!), assets: ['assets/scenes/craving-kitchen.jpg'], then: (t) async {
+        for (var i = 0; i < 40; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
   // Streak: the seed misses day 10 (patched here) and day 3, so the run is 13 days.
   Map<String, Object> streakSeed() {
     final now = DateTime.now();
@@ -337,6 +346,37 @@ void main() {
       }));
   testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed()));
   testWidgets('settings', (t) => _shot(t, 'settings', const SettingsScreen(), prefs: _seed()));
+  // Membership, for testing both plans: free with the way to Plus; Plus (a test purchase) with cancelling.
+  testWidgets('subscription-free', (t) => _shot(t, 'subscription-free', const SubscriptionScreen(), prefs: _seed()));
+  testWidgets('subscription-plus', (t) => _shot(t, 'subscription-plus', const SubscriptionScreen(),
+      prefs: {..._seed(), 'bloom.premium.v1': '{"active":true,"plan":"yearly","trialEnds":"2026-10-28T10:00:00.000","test":true}'}));
+  // Borrowing test paws lands them in the balance; giving back takes them out again; cancelling Plus goes free.
+  testWidgets('borrow-paws-and-cancel', (t) async {
+    t.view.physicalSize = const Size(390 * 3, 844 * 3);
+    t.view.devicePixelRatio = 3;
+    SharedPreferences.setMockInitialValues({..._seed(), 'bloom.premium.v1': '{"active":true,"plan":"monthly","test":true}'});
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await t.pumpWidget(UncontrolledProviderScope(container: container, child: MaterialApp(theme: bloomTheme(), home: const SettingsScreen())));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    final before = container.read(todayProvider).paws;
+    await t.scrollUntilVisible(find.text('Give borrowed paws back'), 300, scrollable: find.byType(Scrollable).first);
+    await t.pump();
+    await t.tap(find.text('+1,000'));
+    await t.tap(find.text('+1,000'));
+    await t.pump();
+    expect(container.read(todayProvider).paws, before + 2000);
+    expect(container.read(borrowedProvider), 2000);
+    await t.tap(find.text('Give borrowed paws back'));
+    await t.pump();
+    expect(container.read(todayProvider).paws, before);
+    expect(container.read(borrowedProvider), 0);
+    expect(container.read(premiumProvider).active, isTrue);
+    await container.read(premiumProvider.notifier).cancel();
+    expect(container.read(premiumProvider).active, isFalse);
+  });
   testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
@@ -443,6 +483,18 @@ void main() {
   // Each quiet task has a room of its own: water in her kitchen, a breath in her window nook.
   testWidgets('urge-water', (t) => _shot(t, 'urge-water', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-kitchen.jpg', ...urgeArt], then: (t) async {
         await t.tap(find.text('Drink a glass of water'));
+        for (var i = 0; i < 20; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
+  testWidgets('urge-walk', (t) => _shot(t, 'urge-walk', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-lane.jpg', ...urgeArt], then: (t) async {
+        await t.tap(find.text('A short walk'));
+        for (var i = 0; i < 20; i++) {
+          await t.pump(const Duration(milliseconds: 100));
+        }
+      }));
+  testWidgets('urge-room', (t) => _shot(t, 'urge-room', const UrgeScreen(), assets: ['assets/scenes/craving-sea.jpg', 'assets/scenes/craving-window.jpg', ...urgeArt], then: (t) async {
+        await t.tap(find.text('Change rooms'));
         for (var i = 0; i < 20; i++) {
           await t.pump(const Duration(milliseconds: 100));
         }

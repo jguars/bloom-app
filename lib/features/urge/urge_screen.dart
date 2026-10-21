@@ -30,11 +30,13 @@ enum UrgeTask {
   final String art;
   final int seconds;
 
-  /// Where she does it with you: water in her kitchen, breaths in her window nook, the rest riding the wave.
+  /// Where she does it with you: water in her kitchen, breaths in her window nook, the walk along the village lane,
+  /// a change of rooms at the open window upstairs.
   CloverScene get scene => switch (this) {
         water => CloverScene.cravingWater,
         breathe => CloverScene.cravingBreathe,
-        _ => CloverScene.craving,
+        walk => CloverScene.cravingLane,
+        room => CloverScene.cravingWindow,
       };
 }
 
@@ -135,7 +137,8 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
   CloverScene get _scene => _stage == _Stage.doing ? _task!.scene : CloverScene.craving;
 
   // Just left of her cheek in each scene (artboard units), mapped through the scene's cover fit.
-  static const _cheek = {CloverScene.craving: Offset(530, 390), CloverScene.cravingWater: Offset(492, 560), CloverScene.cravingBreathe: Offset(494, 470)};
+  static const _cheek = {CloverScene.craving: Offset(530, 390), CloverScene.cravingWater: Offset(492, 560), CloverScene.cravingBreathe: Offset(494, 470),
+    CloverScene.cravingLane: Offset(500, 560), CloverScene.cravingWindow: Offset(470, 560)};
   double _k(double w, double h) {
     final art = _scene.size!;
     return w / art.width > h / art.height ? w / art.width : h / art.height;
@@ -164,6 +167,8 @@ class _UrgeScreenState extends ConsumerState<UrgeScreen> with SingleTickerProvid
             action: switch ((_stage, _task)) {
               (_Stage.doing, UrgeTask.water) => CloverAction.cravingWater,
               (_Stage.doing, UrgeTask.breathe) => CloverAction.cravingBreathe,
+              (_Stage.doing, UrgeTask.walk) => CloverAction.cravingWalk,
+              (_Stage.doing, UrgeTask.room) => CloverAction.cravingRoom,
               _ => CloverAction.cravingSurf,
             },
           ),

@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../data/journal.dart';
 import '../../data/streak.dart';
 import '../../data/today.dart';
+import '../../ui/title_pill.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/fx_layer.dart';
@@ -122,43 +123,15 @@ class _SunPainter extends CustomPainter {
 class StreakChip extends ConsumerWidget {
   const StreakChip({super.key});
 
-  /// The streak on the Progress title row: a gold pill like the Plan's "On my plan?" and the Shop's "Plus" (44 tall, a
-  /// white disc with the sun, then the count). Opens the streak.
+  /// The streak on the Progress title row (the shared [TitlePill]: the sun, then the count). Opens the streak.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(streakNowProvider);
-    return Semantics(
-      button: true,
-      label: '${s.current} day streak',
-      child: GestureDetector(
-        onTap: () {
-          Feel.selectionClick();
-          Navigator.of(context).push(bloomRoute(const StreakScreen()));
-        },
-        child: Container(
-          height: 44,
-          padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
-          decoration: BoxDecoration(
-            color: BloomColors.mustard,
-            borderRadius: BorderRadius.circular(BloomSpace.rPill),
-            boxShadow: const [BoxShadow(color: Color(0x3366551C), blurRadius: 10, offset: Offset(0, 4))],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(color: BloomColors.surface, shape: BoxShape.circle),
-                child: StreakSun(size: 26, lit: s.doneToday),
-              ),
-              const SizedBox(width: 8),
-              Text(s.current == 1 ? '1 day' : '${s.current} days', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.ink)),
-            ],
-          ),
-        ),
-      ),
+    return TitlePill(
+      icon: StreakSun(size: 26, lit: s.doneToday),
+      label: s.current == 1 ? '1 day' : '${s.current} days',
+      semantics: '${s.current} day streak',
+      onTap: () => Navigator.of(context).push(bloomRoute(const StreakScreen())),
     );
   }
 }

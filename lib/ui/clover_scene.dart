@@ -60,7 +60,17 @@ enum CloverScene {
 
   /// A dusk window nook (Craving: "Breathe with me"): she sits cross-legged on a floor cushion and breathes with you,
   /// 5 s in and 5 s out ([CloverAction.cravingBreathe]).
-  cravingBreathe('assets/rive/craving_breathe.riv', 'BreatheScene', 'assets/scenes/craving-nook.jpg', Alignment.center, Offset(540, 440), Size(1100, 856));
+  cravingBreathe('assets/rive/craving_breathe.riv', 'BreatheScene', 'assets/scenes/craving-nook.jpg', Alignment.center, Offset(540, 440), Size(1100, 856)),
+
+  /// The kitchen counter (session: calf raises), Clover seen from behind holding the counter ([CloverAction.exCalfRaise]).
+  calfCounter('assets/rive/counter_scene.riv', 'CounterScene', 'assets/scenes/craving-kitchen.jpg', Alignment.center, Offset(550, 500), Size(1100, 856)),
+
+  /// A village garden lane (Craving: "A short walk"): she strolls along it with you ([CloverAction.cravingWalk]).
+  cravingLane('assets/rive/lane_scene.riv', 'LaneScene', 'assets/scenes/craving-lane.jpg', Alignment.center, Offset(550, 530), Size(1100, 856)),
+
+  /// An upstairs landing, window flung open (Craving: "Change rooms"): she looks out, seen from behind
+  /// ([CloverAction.cravingRoom]).
+  cravingWindow('assets/rive/window_scene.riv', 'WindowScene', 'assets/scenes/craving-window.jpg', Alignment.center, Offset(544, 550), Size(1100, 856));
 
   /// The stairwell's five frame openings (the mats inside the wood), bottom to top, in artboard units.
   static const hallFrames = [

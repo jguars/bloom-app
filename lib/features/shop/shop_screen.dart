@@ -18,6 +18,7 @@ import '../../ui/gear_art.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
+import '../../ui/title_pill.dart';
 import '../today/flow.dart';
 import '../paywall/paywall_screen.dart';
 import 'unlocked_screen.dart';
@@ -403,38 +404,17 @@ class _BuySheet extends ConsumerWidget {
   }
 }
 
-/// Bloom Plus on the Shop's title row: a forest pill like the Plan's "On my plan?" (44 tall, a white disc with the
-/// sparkle, then the label), the green of the PLUS badges on the gear. Opens the paywall.
+/// Bloom Plus on the Shop's title row (the shared [TitlePill]). Opens the paywall.
 class _PlusButton extends StatelessWidget {
   const _PlusButton({required this.active, required this.onTap});
   final bool active;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: active ? 'Bloom Plus, active' : 'Get Bloom Plus',
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
-            decoration: BoxDecoration(
-              color: BloomColors.forest,
-              borderRadius: BorderRadius.circular(BloomSpace.rPill),
-              boxShadow: const [BoxShadow(color: Color(0x332E3826), blurRadius: 10, offset: Offset(0, 4))],
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(color: BloomColors.surface, shape: BoxShape.circle),
-                child: Icon(active ? Icons.check_rounded : Icons.auto_awesome_rounded, size: 19, color: BloomColors.mustard),
-              ),
-              const SizedBox(width: 8),
-              Text('Plus', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.onForest)),
-            ]),
-          ),
-        ),
+  Widget build(BuildContext context) => TitlePill(
+        icon: Icon(active ? Icons.check_rounded : Icons.auto_awesome_rounded, size: TitlePill.iconSize, color: TitlePill.iconColor),
+        label: 'Plus',
+        semantics: active ? 'Bloom Plus, active' : 'Get Bloom Plus',
+        onTap: onTap,
       );
 }

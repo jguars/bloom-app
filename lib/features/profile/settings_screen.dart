@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/feel.dart';
+import '../../app/theme.dart';
+
 import '../../app/reminders.dart';
+import '../../data/borrowed.dart';
 import '../../data/premium.dart';
+import '../../data/today.dart';
 import '../../data/profile.dart';
 import '../../ui/bits.dart';
 import '../../ui/room_frame.dart';
@@ -10,6 +15,7 @@ import '../alarm/alarms_screen.dart';
 import '../lab/move_lab_screen.dart';
 import '../onboarding/onboarding_flow.dart' show pickTime;
 import '../today/flow.dart';
+import 'subscription_screen.dart';
 import 'widget_sheet.dart';
 
 /// Settings, off the Profile's gear: reminders, sound and feel, units, account.
@@ -26,10 +32,26 @@ class SettingsScreen extends ConsumerWidget {
       update(morning ? p.copyWith(morning: on) : p.copyWith(evening: on));
     }
 
+    final premium = ref.watch(premiumProvider);
+    final borrowed = ref.watch(borrowedProvider);
+    final paws = ref.watch(todayProvider.select((s) => s.paws));
     return SubPage(
       from: 'Profile',
       title: 'Settings',
       children: [
+        const Eyebrow('Membership'),
+        const SizedBox(height: 10),
+        GroupCard(children: [
+          GroupRow(
+            title: 'Subscription',
+            caption: premium.active
+                ? 'Bloom Plus · ${premium.plan?.label ?? 'Plus'}${premium.test ? ' · test' : ''}'
+                : 'Free plan · see what Plus adds',
+            onTap: () => Navigator.of(context).push(bloomRoute(const SubscriptionScreen())),
+            last: true,
+          ),
+        ]),
+        const SizedBox(height: 20),
         const Eyebrow('Reminders'),
         const SizedBox(height: 10),
         GroupCard(children: [
@@ -104,7 +126,50 @@ class SettingsScreen extends ConsumerWidget {
             last: true,
           ),
         ]),
+        const SizedBox(height: 20),
+        // For testing the Shop: paws on loan, as many as you like, handed back in one go.
+        const Eyebrow('Testing'),
+        const SizedBox(height: 10),
+        GroupCard(children: [
+          GroupRow(
+            title: 'Borrow paws',
+            caption: borrowed == 0 ? 'Test paws for the Shop · $paws in the balance' : '$borrowed borrowed · $paws in the balance',
+            trailing: _SmallButton(label: '+1,000', onTap: () => ref.read(borrowedProvider.notifier).borrow(1000)),
+          ),
+          GroupRow(
+            title: 'Give borrowed paws back',
+            caption: borrowed == 0 ? 'Nothing borrowed' : 'Takes back up to $borrowed (spent ones are forgiven)',
+            onTap: borrowed == 0 ? null : () => ref.read(borrowedProvider.notifier).giveBack(),
+            last: true,
+          ),
+        ]),
       ],
     );
   }
+}
+
+/// A compact pill button for a settings row.
+class _SmallButton extends StatelessWidget {
+  const _SmallButton({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: 'Borrow 1,000 paws',
+        child: GestureDetector(
+          onTap: () {
+            Feel.selectionClick();
+            onTap();
+          },
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: BloomColors.skyDeep, borderRadius: BorderRadius.circular(BloomSpace.rPill)),
+            child: Text(label, style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.surface)),
+          ),
+        ),
+      );
 }

@@ -11,6 +11,8 @@ import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/scene.dart';
 import '../../ui/weight_chart.dart';
+import '../profile/subscription_screen.dart';
+import '../today/flow.dart';
 
 /// Bloom Plus. Used as the last onboarding step and from Profile. There is
 /// no store yet, so starting a plan is a clearly labelled test purchase.
@@ -58,7 +60,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               duration: BloomMotion.slow,
               switchInCurve: BloomMotion.pop,
               transitionBuilder: (c, a) => FadeTransition(opacity: a, child: ScaleTransition(scale: Tween(begin: .92, end: 1.0).animate(a), child: c)),
-              child: _joined ? _welcome() : _offer(ends),
+              child: _joined ? _welcome() : ref.watch(premiumProvider).active ? _member() : _offer(ends),
             ),
           ],
         ),
@@ -118,6 +120,34 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       const SizedBox(height: 4),
       LedgeButton(label: 'Not now', variant: LedgeVariant.ghost, onPressed: widget.onDone),
       Text('Test mode: no store is connected yet, so nothing is charged.', style: BloomText.caption.copyWith(fontSize: 12), textAlign: TextAlign.center),
+    ]);
+  }
+
+  /// Opened while already on Plus: no second purchase, just where to manage it.
+  Widget _member() {
+    final p = ref.watch(premiumProvider);
+    return Column(key: const ValueKey('member'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      RiseIn(child: Text('You’re on Bloom Plus', style: BloomText.display, textAlign: TextAlign.center)),
+      const SizedBox(height: 8),
+      RiseIn(
+        delay: const Duration(milliseconds: 120),
+        child: Text(
+          [p.plan?.label ?? 'Plus', if (p.trialEnds != null) 'free until ${shortDate(p.trialEnds!)}', if (p.test) 'test purchase'].join(' · '),
+          style: BloomText.bodyMuted,
+          textAlign: TextAlign.center,
+        ),
+      ),
+      const SizedBox(height: 24),
+      RiseIn(
+        delay: const Duration(milliseconds: 200),
+        child: LedgeButton(
+          label: 'Manage subscription',
+          variant: LedgeVariant.secondary,
+          onPressed: () => Navigator.of(context).push(bloomRoute(const SubscriptionScreen())),
+        ),
+      ),
+      const SizedBox(height: 4),
+      LedgeButton(label: 'Close', variant: LedgeVariant.ghost, onPressed: widget.onDone),
     ]);
   }
 

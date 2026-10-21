@@ -26,6 +26,7 @@ import 'ready_screen.dart';
 (CloverScene, CloverAction)? sessionRoom(Exercise ex) => switch (ex.id) {
       'squats' => (CloverScene.today, CloverAction.exSquat),
       'wall_pushups' => (CloverScene.today, CloverAction.exWallPush),
+      'calf_raises' => (CloverScene.calfCounter, CloverAction.exCalfRaise),
       'dance' => (CloverScene.today, CloverAction.exDance),
       'arm_circles' => (CloverScene.today, CloverAction.exArmCircles),
       'stretch' => (CloverScene.profile, CloverAction.exStretch),

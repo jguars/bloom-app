@@ -87,7 +87,17 @@ enum CloverAction {
   /// glass of water, and slow breaths (5 s in, 5 s out, in step with the screen's cues; it starts on an in-breath).
   cravingSurf(39),
   cravingWater(40),
-  cravingBreathe(41);
+  cravingBreathe(41),
+
+  /// Calf raises, at the kitchen counter (CloverScene.calfCounter, seen from behind): paws on the counter, up on her
+  /// toes, a pause at the top, slowly down.
+  exCalfRaise(42),
+
+  /// Craving, "A short walk" (CloverScene.cravingLane): she strolls the village lane, sniffs the lavender, strolls back.
+  cravingWalk(43),
+
+  /// Craving, "Change rooms" (CloverScene.cravingWindow, seen from behind): paws on the open window's sill, looking out.
+  cravingRoom(44);
 
   /// How long [todayGetUp] takes, from the tickle to standing on the rug.
   static const getUpTime = Duration(milliseconds: 4500);

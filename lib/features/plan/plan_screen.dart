@@ -15,6 +15,7 @@ import '../../ui/clover_scene.dart';
 import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
+import '../../ui/title_pill.dart';
 import '../today/flow.dart';
 import '../food/food_check_screen.dart';
 import 'rule_sheet.dart';
@@ -478,33 +479,10 @@ class _PhotoCheckButton extends StatelessWidget {
   const _PhotoCheckButton();
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: 'Is this on my plan? Check a photo',
-        child: GestureDetector(
-          onTap: () {
-            Feel.selectionClick();
-            Navigator.of(context).push(bloomRoute(const FoodCheckScreen()));
-          },
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.fromLTRB(5, 5, 14, 5),
-            decoration: BoxDecoration(
-              color: BloomColors.skyDeep,
-              borderRadius: BorderRadius.circular(BloomSpace.rPill),
-              boxShadow: const [BoxShadow(color: Color(0x3324485A), blurRadius: 10, offset: Offset(0, 4))],
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: const BoxDecoration(color: BloomColors.surface, shape: BoxShape.circle),
-                child: const Icon(Icons.photo_camera_outlined, size: 19, color: BloomColors.skyDeep),
-              ),
-              const SizedBox(width: 8),
-              Text('On my plan?', style: BloomText.button.copyWith(fontSize: 14, color: BloomColors.surface)),
-            ]),
-          ),
-        ),
+  Widget build(BuildContext context) => TitlePill(
+        icon: const Icon(Icons.photo_camera_outlined, size: TitlePill.iconSize, color: TitlePill.iconColor),
+        label: 'On my plan?',
+        semantics: 'Is this on my plan? Check a photo',
+        onTap: () => Navigator.of(context).push(bloomRoute(const FoodCheckScreen())),
       );
 }

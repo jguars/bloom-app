@@ -23,6 +23,7 @@ import '../../ui/ledge_button.dart';
 import '../../ui/paw.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/speech_bubble.dart';
+import '../../ui/title_pill.dart';
 import '../streak/streak_screens.dart' show StreakPatchScreen;
 import '../urge/urge_screen.dart';
 import 'check_in_sheet.dart';
@@ -267,6 +268,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
                 pinned: true,
                 delegate: DockHeader(
                   title: 'Move with Clover',
+                  slimTitle: 'Today',
                   subtitle: Text(
                     s.goalMet ? 'Today · day complete' : 'Today · ${s.done} of ${s.set.length} done',
                     style: BloomText.bodyMuted.copyWith(fontSize: 15),
@@ -278,8 +280,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
                   top: mq.padding.top,
                   // the paw chip floats at the right of the slim bar
                   trailingGap: 104,
-                  titleBlock: 112,
-                  trailingBeside: true,
                 ),
               ),
               SliverToBoxAdapter(
@@ -776,72 +776,16 @@ class _CheckInRow extends StatelessWidget {
 
 /// The round "Craving?" button in Today's header: a deep-sky disc with a wave and its name, and a
 /// soft ring that breathes so it reads as something to tap.
-class _CravingButton extends StatefulWidget {
+/// Help when a craving hits, on the day's title row (the shared [TitlePill]).
+class _CravingButton extends StatelessWidget {
   const _CravingButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
-  State<_CravingButton> createState() => _CravingButtonState();
-}
-
-class _CravingButtonState extends State<_CravingButton> with SingleTickerProviderStateMixin {
-  late final _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: 'Craving something? Ride it out with Clover',
-    child: GestureDetector(
-      onTap: () {
-        Feel.selectionClick();
-        widget.onTap();
-      },
-      child: SizedBox(
-        width: 84,
-        height: 84,
-        child: AnimatedBuilder(
-          animation: _pulse,
-          builder: (context, child) {
-            final t = MediaQuery.of(context).disableAnimations ? 0.0 : _pulse.value;
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 70 + 14 * t,
-                  height: 70 + 14 * t,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: BloomColors.skyDeep.withValues(alpha: .22 * (1 - t)),
-                  ),
-                ),
-                child!,
-              ],
-            );
-          },
-          child: Container(
-            width: 70,
-            height: 70,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: BloomColors.skyDeep,
-              boxShadow: [BoxShadow(color: Color(0x3324485A), blurRadius: 10, offset: Offset(0, 4))],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.waves_rounded, size: 24, color: BloomColors.surface),
-                Text('Craving?', style: BloomText.label.copyWith(fontSize: 11, letterSpacing: .2, color: BloomColors.surface)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => TitlePill(
+        icon: const Icon(Icons.waves_rounded, size: TitlePill.iconSize, color: TitlePill.iconColor),
+        label: 'Craving?',
+        semantics: 'Craving something? Ride it out with Clover',
+        onTap: onTap,
+      );
 }

@@ -291,8 +291,11 @@ class _RoomFrameState extends ConsumerState<RoomFrame> with RoomVisit {
 /// list scrolls it shrinks: the big title fades into a slim bar at the top of the screen, and the switch docks
 /// under it. [leadingGap] and [trailingGap] keep the slim bar clear of buttons floating in the top corners.
 class DockHeader extends SliverPersistentHeaderDelegate {
-  DockHeader({required this.title, required this.subtitle, required this.trailing, required this.pinned, required this.top, this.trailingGap = 0, this.leadingGap = 0, this.keepTrailing = false, this.titleBlock = 92, this.trailingBeside = false});
+  DockHeader({required this.title, required this.subtitle, required this.trailing, required this.pinned, required this.top, this.trailingGap = 0, this.leadingGap = 0, this.keepTrailing = false, this.titleBlock = 92, this.trailingBeside = false, this.slimTitle});
   final String title;
+
+  /// The docked bar's title, when [title] is too long to share the bar with its buttons (Today).
+  final String? slimTitle;
 
   /// Keep [trailing] on the slim bar even beside a floating corner chip (Today's craving button).
   final bool keepTrailing;
@@ -371,7 +374,13 @@ class DockHeader extends SliverPersistentHeaderDelegate {
                       const SizedBox(height: 16),
                     ])
                   : Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisAlignment: MainAxisAlignment.end, children: [
-                      RiseIn(child: Row(children: [Expanded(child: Text(title, style: BloomText.display)), ?trailing])),
+                      // one line: a long title beside its button shrinks a touch rather than wrap
+                      RiseIn(
+                        child: Row(children: [
+                          Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(title, style: BloomText.display, maxLines: 1))),
+                          if (trailing != null) ...[const SizedBox(width: 10), trailing!],
+                        ]),
+                      ),
                       const SizedBox(height: 2),
                       RiseIn(delay: const Duration(milliseconds: 60), child: subtitle),
                       const SizedBox(height: 16),
@@ -390,7 +399,7 @@ class DockHeader extends SliverPersistentHeaderDelegate {
           child: Opacity(
             opacity: slim,
             child: Row(children: [
-              Expanded(child: Text(title, style: BloomText.title.copyWith(fontSize: 22), maxLines: 1, softWrap: false, overflow: TextOverflow.fade)),
+              Expanded(child: Text(slimTitle ?? title, style: BloomText.title.copyWith(fontSize: 22), maxLines: 1, softWrap: false, overflow: TextOverflow.fade)),
               if (trailingGap == 0) ?trailing,
               // a big button kept on the slim bar shrinks to fit it
               if (trailingGap != 0 && keepTrailing && trailing != null) ...[
@@ -415,7 +424,7 @@ class DockHeader extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(DockHeader old) =>
       old.title != title || old.subtitle != subtitle || old.trailing != trailing || old.pinned != pinned || old.top != top ||
       old.trailingGap != trailingGap || old.leadingGap != leadingGap || old.keepTrailing != keepTrailing || old.titleBlock != titleBlock ||
-      old.trailingBeside != trailingBeside;
+      old.trailingBeside != trailingBeside || old.slimTitle != slimTitle;
 }
 
 /// The soft fade from the scene into the panel, so the panel's top edge never shows as a line.
