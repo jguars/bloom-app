@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -197,7 +198,7 @@ class AlarmsNotifier extends Notifier<List<AlarmItem>> {
     await _stop(a.id);
     if (!a.enabled) return;
     try {
-      await Alarm.set(alarmSettings: _settings(a, a.nextAfter(DateTime.now())));
+      await Alarm.set(alarmSettings: _settings(a, a.nextAfter(clock.now())));
     } catch (e) {
       debugPrint('Alarms: could not set ${a.time}: $e');
     }
@@ -227,7 +228,7 @@ class AlarmsNotifier extends Notifier<List<AlarmItem>> {
     final a = byId(ringingId);
     if (a == null) return;
     try {
-      await Alarm.set(alarmSettings: _settings(a, DateTime.now().add(kSnooze), id: a.id + kSnoozeIdOffset));
+      await Alarm.set(alarmSettings: _settings(a, clock.now().add(kSnooze), id: a.id + kSnoozeIdOffset));
     } catch (_) {}
     if (a.days.isNotEmpty) await _sync(a);
   }

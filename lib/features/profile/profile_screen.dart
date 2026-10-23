@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,7 +36,7 @@ class ProfileScreen extends ConsumerWidget {
     final journal = ref.watch(journalProvider);
     final premium = ref.watch(premiumProvider);
     final days = journal.dayNumber;
-    final hour = DateTime.now().hour;
+    final hour = clock.now().hour;
     final line = hour >= 20 || hour < 5 ? 'Story time, then sleep.' : (hour < 11 ? 'Five more minutes…' : 'My comfy corner!');
     void push(Widget w) => Navigator.of(context).push(bloomRoute(w));
     final goal = profile.reason.isEmpty ? 'Moving together' : profile.reason;

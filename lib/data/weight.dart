@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,7 +107,7 @@ class WeightNotifier extends Notifier<WeightLog> {
   }
 
   void log(double kg, [DateTime? at]) {
-    final entries = [...state.entries, WeightEntry(at ?? DateTime.now(), double.parse(kg.toStringAsFixed(2)))]..sort((a, b) => a.at.compareTo(b.at));
+    final entries = [...state.entries, WeightEntry(at ?? clock.now(), double.parse(kg.toStringAsFixed(2)))]..sort((a, b) => a.at.compareTo(b.at));
     state = state.copyWith(entries: entries);
     _save();
   }

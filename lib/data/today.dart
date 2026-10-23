@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,7 +206,7 @@ class TodayNotifier extends Notifier<TodayState> {
 
   @override
   TodayState build() {
-    final today = dayKey(DateTime.now());
+    final today = dayKey(clock.now());
     _load(today);
     return TodayState(day: today, paws: 0, bonusPaid: false);
   }

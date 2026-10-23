@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -276,7 +277,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   DateTime? _goalDate(double pace) {
     final diff = _kg - _goal;
     if (diff <= .05) return null;
-    return DateTime.now().add(Duration(days: (diff / pace * 7).round()));
+    return clock.now().add(Duration(days: (diff / pace * 7).round()));
   }
 
   Future<void> _turnOnReminders() async {
@@ -830,7 +831,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
           null,
         );
       case _Step.journey:
-        final today = dayKey(DateTime.now());
+        final today = dayKey(clock.now());
         final u = _units;
         final when = _goalDate(_pace);
         return (

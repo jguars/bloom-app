@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,7 +52,7 @@ class _RingingScreenState extends ConsumerState<RingingScreen> with SingleTicker
   Widget build(BuildContext context) {
     final alarm = ref.read(alarmsProvider.notifier).byId(widget.alarmId);
     final name = ref.watch(profileProvider).name.trim();
-    final now = TimeOfDay.now();
+    final now = TimeOfDay.fromDateTime(clock.now());
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final mq = MediaQuery.of(context);
     return PopScope(

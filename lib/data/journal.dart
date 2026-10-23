@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,18 @@ class Milestone {
 
   /// The shape the plan expects by then (100 = softest, 0 = fit).
   double get bodyMass => (100 * (1 - day / 60)).clamp(0, 100).toDouble();
+  /// Storage key for when it was reached; never shown.
   String get tag => 'D$day';
+
+  /// What the track shows under the flag.
+  String get label => switch (day) {
+        0 => 'Start',
+        7 => '1 week',
+        15 => '2 weeks',
+        30 => '1 month',
+        60 => '2 months',
+        _ => 'Day $day',
+      };
 }
 
 const milestones = [
@@ -202,7 +214,7 @@ class JournalNotifier extends Notifier<Journal> {
 
   @override
   Journal build() {
-    final today = dayKey(DateTime.now());
+    final today = dayKey(clock.now());
     _load(today);
     return Journal(start: today, today: today);
   }

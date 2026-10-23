@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -185,7 +186,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> with RoomVisit, Widge
     }
     final mq = MediaQuery.of(context);
     final sceneH = (mq.size.height * .47).clamp(340.0, 470.0);
-    final now = DateTime.now();
+    final now = clock.now();
     const wd = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return ColoredBox(

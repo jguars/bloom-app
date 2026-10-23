@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bloom/app/clock.dart';
+import 'package:clock/clock.dart';
 import 'package:bloom/app/shell.dart';
 import 'package:bloom/app/theme.dart';
 import 'package:bloom/features/lab/move_lab_screen.dart';
@@ -50,12 +51,20 @@ Future<void> _fonts() async {
   await m.load();
 }
 
+/// The day every shot is taken on (the goldens were made then).
+final _now = DateTime(2026, 10, 22, 10, 40);
+
 Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> assets = const [], Future<void> Function(WidgetTester)? then, Map<String, Object> prefs = const {}, int hour = 10}) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
   tester.view.devicePixelRatio = 3;
   SharedPreferences.setMockInitialValues(prefs);
-  final now = DateTime.now();
-  final pinned = DateTime(now.year, now.month, now.day, hour, 40);
+  FxLayer.debugSeed = 7;
+  final pinned = DateTime(_now.year, _now.month, _now.day, hour, 40);
+  // Everything the app reads from the clock, in widgets or not, sees the pinned day, so shots don't drift by date.
+  await withClock(Clock.fixed(pinned), () => _capture(tester, name, home, pinned, assets: assets, then: then));
+}
+
+Future<void> _capture(WidgetTester tester, String name, Widget home, DateTime pinned, {required List<String> assets, Future<void> Function(WidgetTester)? then}) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [clockProvider.overrideWithValue(() => pinned)],
     child: MaterialApp(theme: bloomTheme(), debugShowCheckedModeBanner: false, builder: (c, child) => FxLayer.wrap(child!), home: home),
@@ -79,7 +88,7 @@ Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> 
 
 /// Sixteen days into the journey, with weigh-ins and a few active days.
 Map<String, Object> _seed() {
-  final now = DateTime.now();
+  final now = _now;
   final today = DateTime(now.year, now.month, now.day);
   final start = today.subtract(const Duration(days: 16));
   final days = <String, Object>{};
@@ -110,7 +119,7 @@ Map<String, Object> _seed() {
 /// Today's plan with two rules kept, for the check-in.
 Map<String, Object> _evening({String? answer}) {
   final seed = _seed();
-  final today = dayKey(DateTime.now());
+  final today = dayKey(_now);
   seed['bloom.plan.v1'] = jsonEncode({
     'day': today,
     'kept': ['m1', 's2'],
@@ -157,7 +166,7 @@ void main() {
       }));
   // Streak: the seed misses day 10 (patched here) and day 3, so the run is 13 days.
   Map<String, Object> streakSeed() {
-    final now = DateTime.now();
+    final now = _now;
     final missed = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
     return {..._seed(), 'bloom.streak.v1': jsonEncode({'p': 1, 'pd': [dayKey(missed)], 'l': 13})};
   }
@@ -173,7 +182,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 100));
     }
     const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    final now = DateTime.now();
+    final now = _now;
     String title(DateTime m) => '${names[m.month - 1]} ${m.year}';
     final prev = DateTime(now.year, now.month - 1);
     await t.ensureVisible(find.byType(PageView));
@@ -193,7 +202,7 @@ void main() {
   });
   testWidgets('streak-celebrate', (t) => _shot(t, 'streak-celebrate', const StreakCelebrationScreen(reward: Reward(paws: 10, bonus: 0, doneNow: 1)), assets: ['assets/scenes/celebrate-empty.jpg'], prefs: streakSeed()));
   testWidgets('streak-patch', (t) {
-    final now = DateTime.now();
+    final now = _now;
     final from = dayKey(DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)));
     return _shot(t, 'streak-patch', StreakPatchScreen(gap: (from: from, days: 1, run: 13)), prefs: streakSeed());
   });
@@ -268,10 +277,10 @@ void main() {
       }));
   // For the deck: Habits mid-day, two kept, nothing popping up.
   testWidgets('deck-habits', (t) {
-    final ms = DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch;
+    final ms = _now.subtract(const Duration(hours: 2)).millisecondsSinceEpoch;
     return _shot(t, 'deck-habits', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], prefs: {
       'bloom.plan.v2': jsonEncode({
-        'day': dayKey(DateTime.now()),
+        'day': dayKey(_now),
         'logs': {'m1': [ms, ms + 1000, ms + 2000, ms + 3000, ms + 4000], 'm2': [ms]},
         'rules': [
           {'id': 'm1', 'kind': 'more', 'title': 'Drink water', 'icon': 'water', 'goal': 8},
@@ -322,7 +331,7 @@ void main() {
   testWidgets('progress-noweight', (t) => _shot(t, 'progress-noweight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', ..._planArt], prefs: {
         ..._seed(),
         'bloom.plan.v2': jsonEncode({
-          'day': dayKey(DateTime.now()),
+          'day': dayKey(_now),
           'logs': {},
           'rules': [
             {'id': 'm1', 'kind': 'more', 'title': 'Drink water', 'icon': 'water', 'goal': 8},
@@ -490,7 +499,7 @@ void main() {
       }));
   testWidgets('today-checked-in', (t) => _shot(t, 'today-checked-in', const Shell(), assets: ['assets/scenes/living.jpg'], prefs: _evening(answer: 'mostly'), hour: 20));
   testWidgets('today-missed', (t) {
-    final start = DateTime.now().subtract(const Duration(days: 3));
+    final start = _now.subtract(const Duration(days: 3));
     return _shot(t, 'today-missed', const Shell(), assets: ['assets/scenes/living-empty.jpg'], prefs: {
       'bloom.journal.v1': jsonEncode({'start': dayKey(start), 'effort': 4.0, 'days': {}}),
     });

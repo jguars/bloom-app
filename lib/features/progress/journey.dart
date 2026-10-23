@@ -93,7 +93,7 @@ class _Node extends StatelessWidget {
         child: dot,
       ),
       const SizedBox(height: 6),
-      Text(m.tag, style: BloomText.label.copyWith(color: state == _S.later ? BloomColors.inkMuted : BloomColors.ink)),
+      Text(m.label, style: BloomText.label.copyWith(color: state == _S.later ? BloomColors.inkMuted : BloomColors.ink)),
       Text(date, style: BloomText.caption.copyWith(fontSize: 12)),
     ]);
   }

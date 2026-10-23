@@ -15,6 +15,10 @@ class FxLayer extends StatefulWidget {
 
   static final _key = GlobalKey<_FxLayerState>();
 
+  /// Tests set this so confetti falls the same way every run.
+  @visibleForTesting
+  static int? debugSeed;
+
   /// Wrap the app with this (see [FxLayer.wrap]).
   static Widget wrap(Widget child) => FxLayer(key: _key, child: child);
 
@@ -49,7 +53,7 @@ class _Flyer {
 class _FxLayerState extends State<FxLayer> with SingleTickerProviderStateMixin {
   final _parts = <_Particle>[];
   final _flyers = <_Flyer>[];
-  final _rnd = math.Random();
+  final _rnd = math.Random(FxLayer.debugSeed);
   late final Ticker _ticker = createTicker(_tick);
   Duration _last = Duration.zero, _now = Duration.zero;
 

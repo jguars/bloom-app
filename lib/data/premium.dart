@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +60,7 @@ class PremiumNotifier extends Notifier<Premium> {
 
   /// Test purchase: unlocks Plus with no store and no payment.
   Future<void> startTest(PremiumPlan plan) async {
-    state = Premium(active: true, plan: plan, trialEnds: plan == PremiumPlan.yearly ? DateTime.now().add(const Duration(days: kTrialDays)) : null, test: true);
+    state = Premium(active: true, plan: plan, trialEnds: plan == PremiumPlan.yearly ? clock.now().add(const Duration(days: kTrialDays)) : null, test: true);
     await _save();
   }
 

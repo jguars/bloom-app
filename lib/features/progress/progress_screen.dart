@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -276,7 +277,7 @@ class _WeightView extends StatelessWidget {
                 ),
             ]),
             const SizedBox(height: 10),
-            WeightChart(log: log, units: units, now: DateTime.now()),
+            WeightChart(log: log, units: units, now: clock.now()),
             const SizedBox(height: 8),
             Row(children: [
               const _Legend(dashed: false, label: 'You'),

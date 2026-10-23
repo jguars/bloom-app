@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -43,7 +44,7 @@ class _AlarmsScreenState extends ConsumerState<AlarmsScreen> {
   @override
   Widget build(BuildContext context) {
     final alarms = ref.watch(alarmsProvider);
-    final now = DateTime.now();
+    final now = clock.now();
     final on = alarms.where((a) => a.enabled).toList();
     final next = on.isEmpty ? null : on.map((a) => (a, a.nextAfter(now))).reduce((x, y) => x.$2.isBefore(y.$2) ? x : y);
     String inText(Duration d) {

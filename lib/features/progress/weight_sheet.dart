@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -91,7 +92,7 @@ class _WeightSheetState extends ConsumerState<WeightSheet> {
   }
 
   String _dayName(DateTime t) {
-    final now = DateTime.now();
+    final now = clock.now();
     final days = DateTime(now.year, now.month, now.day).difference(DateTime(t.year, t.month, t.day)).inDays;
     if (days == 0) return 'today';
     if (days == 1) return 'yesterday';

@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,7 +48,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final sceneH = 360.0 + mq.padding.top * .4;
-    final ends = DateTime.now().add(const Duration(days: kTrialDays));
+    final ends = clock.now().add(const Duration(days: kTrialDays));
     return ColoredBox(
       color: BloomColors.surface,
       child: Stack(fit: StackFit.expand, children: [
