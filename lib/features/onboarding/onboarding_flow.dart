@@ -839,13 +839,15 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
             Text('BASED ON EVERYTHING YOU TOLD HER', style: BloomText.label),
             Text(when == null ? 'Moving every day' : '${u.short(_goal)} by ${shortDate(when)}', style: BloomText.displayXl.copyWith(fontSize: 36, height: 42 / 36)),
             BloomCard(child: JourneyTrack(journal: Journal(start: today, today: today))),
-            Row(children: [
-              const Expanded(child: StatCard(value: '3 moves', label: 'A day')),
-              const SizedBox(width: 10),
-              const Expanded(child: StatCard(value: '~15 min', label: 'Together')),
-              const SizedBox(width: 10),
-              Expanded(child: StatCard(value: _easy.isEmpty ? 'All moves' : 'Gentle', label: _easy.isEmpty ? 'On the table' : 'On ${_limits[_easy.first]!.toLowerCase()}')),
-            ]),
+            IntrinsicHeight(
+              child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const Expanded(child: StatCard(value: '3 moves', label: 'A day', valueSize: 19)),
+                const SizedBox(width: 10),
+                const Expanded(child: StatCard(value: '~15 min', label: 'Together', valueSize: 19)),
+                const SizedBox(width: 10),
+                Expanded(child: StatCard(value: _easy.isEmpty ? 'All moves' : 'Gentle', label: _easy.isEmpty ? 'On the table' : 'On ${_limits[_easy.first]!.toLowerCase()}', valueSize: 19)),
+              ]),
+            ),
           ],
           KeyedSubtree(key: _startKey, child: LedgeButton(label: 'Start our journey', glow: true, onPressed: _start)),
           null,

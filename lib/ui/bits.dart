@@ -35,8 +35,11 @@ class Eyebrow extends StatelessWidget {
 
 /// A small number with a caption above it.
 class StatCard extends StatelessWidget {
-  const StatCard({super.key, required this.value, required this.label});
+  const StatCard({super.key, required this.value, required this.label, this.valueSize = 22});
   final String value, label;
+
+  /// A row of narrow tiles passes one smaller size, so their numbers match.
+  final double valueSize;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -49,7 +52,13 @@ class StatCard extends StatelessWidget {
             duration: BloomMotion.base,
             transitionBuilder: (c, a) => ScaleTransition(scale: CurvedAnimation(parent: a, curve: BloomMotion.pop), child: FadeTransition(opacity: a, child: c)),
             layoutBuilder: (current, previous) => Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
-            child: Text(value, key: ValueKey(value), style: BloomText.number.copyWith(fontSize: 22, height: 28 / 22, fontFeatures: const [FontFeature.tabularFigures()])),
+            // One line always: a narrow tile shrinks the number rather than wrapping it.
+            child: FittedBox(
+              key: ValueKey(value),
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, maxLines: 1, style: BloomText.number.copyWith(fontSize: valueSize, height: 28 / 22, fontFeatures: const [FontFeature.tabularFigures()])),
+            ),
           ),
         ]),
       );
