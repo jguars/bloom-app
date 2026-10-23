@@ -18,7 +18,7 @@ class WeightHistoryScreen extends ConsumerWidget {
     final units = ref.watch(unitsProvider);
     final entries = log.entries.reversed.toList();
     return SubPage(
-      from: 'Profile',
+      from: 'Progress',
       title: 'Weight history',
       children: [
         if (entries.isEmpty)

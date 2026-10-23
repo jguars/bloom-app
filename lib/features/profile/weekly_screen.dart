@@ -36,7 +36,7 @@ class WeeklyScreen extends ConsumerWidget {
             : 'We moved on ${w.activeDays} ${w.activeDays == 1 ? 'day' : 'days'}. One more next week?';
 
     return SubPage(
-      from: 'Profile',
+      from: 'Progress',
       title: 'Your week with $cat',
       bottom: LedgeButton(label: 'Done', onPressed: () => Navigator.of(context).pop()),
       children: [
@@ -52,7 +52,7 @@ class WeeklyScreen extends ConsumerWidget {
           children: [
             StatCard(value: '${w.moves} of ${7 * kDailyGoal}', label: 'Moves together'),
             StatCard(value: '${w.minutes} min', label: 'Time moving'),
-            StatCard(value: kept == null ? '—' : '${(kept * 100).round()}%', label: 'Plan kept'),
+            StatCard(value: kept == null ? '—' : '${(kept * 100).round()}%', label: 'Habits kept'),
             StatCard(value: change, label: 'Weight change'),
             StatCard(value: '${w.checkIns} of 7', label: 'Check-ins'),
             StatCard(value: w.urges == 0 ? '—' : '${w.rodeOut} of ${w.urges}', label: 'Cravings ridden out'),

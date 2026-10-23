@@ -15,6 +15,9 @@ class TitlePill extends StatelessWidget {
 
   static const iconSize = 19.0, iconColor = BloomColors.skyDeep;
 
+  /// A painted icon's size in the white disc.
+  static const artSize = 26.0;
+
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,

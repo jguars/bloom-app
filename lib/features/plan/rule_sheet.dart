@@ -72,10 +72,10 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
         ? ['walk', 'water', 'stretch', 'veg', 'stairs', 'sleep', 'sun', 'fruit']
         : ['drink', 'fastfood', 'night', 'snack', 'cake', 'screen', 'bar', 'plate'];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      Text(_editing ? 'Edit rule' : (_kind == PlanKind.more ? 'Add a Do' : 'Add a Don’t'), style: BloomText.title),
+      Text(_editing ? 'Edit habit' : (_kind == PlanKind.more ? 'Add a habit to do' : 'Add one to avoid'), style: BloomText.title),
       const SizedBox(height: 14),
       SegmentedSwitch(
-        labels: const ['Do', 'Don’t'],
+        labels: const ['To do', 'To avoid'],
         index: _kind.index,
         onChanged: (i) => setState(() {
           _kind = PlanKind.values[i];
@@ -171,7 +171,7 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
       ]),
       const SizedBox(height: 18),
       LedgeButton(
-        label: _editing ? 'Save rule' : 'Add rule',
+        label: _editing ? 'Save habit' : 'Add habit',
         onPressed: valid
             ? () {
                 if (_editing) {
@@ -189,7 +189,7 @@ class _RuleSheetState extends ConsumerState<RuleSheet> {
           child: TextButton.icon(
             onPressed: _remove,
             icon: const Icon(Icons.delete_outline_rounded, color: BloomColors.clayDeep),
-            label: Text('Remove rule', style: BloomText.button.copyWith(fontSize: 15, color: BloomColors.clayDeep)),
+            label: Text('Remove habit', style: BloomText.button.copyWith(fontSize: 15, color: BloomColors.clayDeep)),
           ),
         ),
       ],

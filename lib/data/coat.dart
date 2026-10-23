@@ -15,6 +15,9 @@ enum Coat {
 
   bool get plus => this != clover;
 
+  /// Her face for round avatars: head and shoulders, centred (the [thumb] is her whole body).
+  String get avatar => 'assets/cats/avatar-$name.png';
+
   /// The cat the scenes draw: the one chosen, while it's allowed (see BloomApp).
   static final current = ValueNotifier<Coat>(Coat.clover);
 

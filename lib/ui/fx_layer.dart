@@ -66,8 +66,10 @@ class _FxLayerState extends State<FxLayer> with SingleTickerProviderStateMixin {
   }
 
   void _fly(Offset from, Offset to, String text, Duration delay) {
-    _flyers.add(_Flyer(from, to, text, _now + delay));
+    // Restart the clock first when idle: a start stamped with the last run's leftover time would hold the
+    // flyer back by that much.
     _start();
+    _flyers.add(_Flyer(from, to, text, _now + delay));
   }
 
   void _start() {

@@ -36,7 +36,7 @@ class SettingsScreen extends ConsumerWidget {
     final borrowed = ref.watch(borrowedProvider);
     final paws = ref.watch(todayProvider.select((s) => s.paws));
     return SubPage(
-      from: 'Profile',
+      from: 'You',
       title: 'Settings',
       children: [
         const Eyebrow('Membership'),

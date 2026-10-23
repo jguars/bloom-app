@@ -60,7 +60,7 @@ class _CatPickerState extends ConsumerState<CatPicker> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       Text('Who lives with you?', style: BloomText.title),
       const SizedBox(height: 4),
-      Text('Switch any time. She keeps every move, flag and paw you’ve earned.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
+      Text('Switch any time. She keeps every move, portrait and paw you’ve earned.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       const SizedBox(height: 16),
       Row(children: [
         for (final (i, c) in Coat.values.indexed) ...[

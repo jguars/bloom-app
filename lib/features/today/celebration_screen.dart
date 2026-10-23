@@ -78,7 +78,7 @@ class _CelebrationScreenState extends ConsumerState<CelebrationScreen> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.flag_rounded, size: 18, color: BloomColors.mustardPress),
                       const SizedBox(width: 6),
-                      Text('New flag: ${widget.reward.flag!.tag} · ${widget.reward.flag!.title}', style: BloomText.button.copyWith(fontSize: 15)),
+                      Text('New portrait: ${widget.reward.flag!.title}', style: BloomText.button.copyWith(fontSize: 15)),
                     ]),
                   ),
                 ),

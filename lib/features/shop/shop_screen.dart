@@ -12,6 +12,7 @@ import '../../data/equipment.dart';
 import '../../data/premium.dart';
 import '../../data/today.dart';
 import '../../data/wardrobe.dart';
+import '../../ui/painted_icon.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/gear_art.dart';
@@ -412,7 +413,7 @@ class _PlusButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TitlePill(
-        icon: Icon(active ? Icons.check_rounded : Icons.auto_awesome_rounded, size: TitlePill.iconSize, color: TitlePill.iconColor),
+        icon: active ? const Icon(Icons.check_rounded, size: TitlePill.iconSize, color: TitlePill.iconColor) : const PaintedIcon('sparkles', size: TitlePill.artSize),
         label: 'Plus',
         semantics: active ? 'Bloom Plus, active' : 'Get Bloom Plus',
         onTap: onTap,

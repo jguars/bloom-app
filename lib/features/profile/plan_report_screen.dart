@@ -9,7 +9,7 @@ import '../../ui/weight_chart.dart';
 import 'week_stats.dart';
 import '../../ui/rule_icon.dart';
 
-/// Each rule, and which of the last seven days it was kept.
+/// Each habit, and which of the last seven days it was kept (opened from Progress).
 class PlanReportScreen extends ConsumerWidget {
   const PlanReportScreen({super.key});
 
@@ -25,7 +25,7 @@ class PlanReportScreen extends ConsumerWidget {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Eyebrow(name),
         const SizedBox(height: 10),
-        if (rules.isEmpty) Text('No rules here yet.', style: BloomText.bodyMuted),
+        if (rules.isEmpty) Text('None here yet.', style: BloomText.bodyMuted),
         for (final r in rules) ...[
           _RuleWeek(rule: r, kept: w.keptDays(r.id), labels: labels),
           const SizedBox(height: 10),
@@ -34,14 +34,14 @@ class PlanReportScreen extends ConsumerWidget {
     }
 
     return SubPage(
-      from: 'Profile',
-      title: 'Plan report',
+      from: 'Progress',
+      title: 'Habit report',
       children: [
         Text('The last 7 days, ending today.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
         const SizedBox(height: 16),
-        section(PlanKind.more, 'Do’s'),
+        section(PlanKind.more, 'To do'),
         const SizedBox(height: 8),
-        section(PlanKind.skip, 'Don’ts'),
+        section(PlanKind.skip, 'To avoid'),
       ],
     );
   }
@@ -64,8 +64,8 @@ class _RuleWeek extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(color: more ? BloomColors.forestSoft : BloomColors.claySoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-            child: Center(child: RuleIcon(rule.icon, size: 30, color: more ? BloomColors.forest : BloomColors.clayDeep)),
+            decoration: BoxDecoration(color: more ? BloomColors.forestSoft : BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
+            child: Center(child: RuleIcon(rule.icon, size: 30, color: BloomColors.forest)),
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(rule.title, style: BloomText.headline.copyWith(fontSize: 16))),
@@ -83,8 +83,8 @@ class _RuleWeek extends StatelessWidget {
                 child: Container(
                   width: 28,
                   height: 28,
-                  decoration: BoxDecoration(color: kept[i] ? (more ? BloomColors.forest : BloomColors.clayDeep) : BloomColors.paperSunk, shape: BoxShape.circle),
-                  child: kept[i] ? Icon(more ? Icons.check_rounded : Icons.close_rounded, size: 16, color: BloomColors.surface) : null,
+                  decoration: BoxDecoration(color: kept[i] ? BloomColors.forest : BloomColors.paperSunk, shape: BoxShape.circle),
+                  child: kept[i] ? const Icon(Icons.check_rounded, size: 16, color: BloomColors.surface) : null,
                 ),
               ),
               const SizedBox(height: 4),

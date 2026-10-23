@@ -118,7 +118,7 @@ class _FoodCheckScreenState extends ConsumerState<FoodCheckScreen> with SingleTi
               ),
             ),
             const SizedBox(width: 10),
-            Text('Plan', style: BloomText.caption.copyWith(fontSize: 15)),
+            Text('Habits', style: BloomText.caption.copyWith(fontSize: 15)),
           ]),
           const SizedBox(height: 12),
           Text('Is this on my plan?', style: BloomText.display),

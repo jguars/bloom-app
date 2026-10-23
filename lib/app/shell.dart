@@ -83,10 +83,10 @@ class BloomTabBar extends ConsumerWidget {
 
   static const _items = [
     (Room.shop, Icons.shopping_bag_outlined, 'Shop'),
-    (Room.plan, Icons.checklist_rounded, 'Plan'),
+    (Room.plan, Icons.checklist_rounded, 'Habits'),
     (Room.today, Icons.weekend_outlined, 'Today'),
     (Room.progress, Icons.show_chart_rounded, 'Progress'),
-    (Room.profile, Icons.person_outline_rounded, 'Profile'),
+    (Room.profile, Icons.person_outline_rounded, 'You'),
   ];
 
   // Saturates what shows through, like light bending in thick glass.

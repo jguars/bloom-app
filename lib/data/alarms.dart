@@ -128,12 +128,12 @@ class AlarmsNotifier extends Notifier<List<AlarmItem>> {
     await prefs.setString(_key, jsonEncode([for (final a in state) a.toJson()]));
   }
 
-  /// Notifications and exact alarms need the user's OK on newer Android.
+  /// Notifications need the user's OK (an iOS alarm rings through one); exact alarms too, on newer Android.
   Future<void> ensurePermissions() async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     try {
       await Permission.notification.request();
-      if (await Permission.scheduleExactAlarm.isDenied) await Permission.scheduleExactAlarm.request();
+      if (Platform.isAndroid && await Permission.scheduleExactAlarm.isDenied) await Permission.scheduleExactAlarm.request();
     } catch (e) {
       debugPrint('Alarms: permission request failed: $e');
     }

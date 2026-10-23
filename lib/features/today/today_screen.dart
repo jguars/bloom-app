@@ -14,6 +14,7 @@ import '../../data/exercises.dart';
 import '../../data/journal.dart';
 import '../../data/streak.dart';
 import '../../data/today.dart';
+import '../../ui/painted_icon.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/room_light.dart';
@@ -450,10 +451,10 @@ BoxDecoration get _cardDeco => BoxDecoration(
   ],
 );
 
-IconData _kindIcon(Exercise e) => switch (kindOf(e)) {
-      MoveKind.move => Icons.directions_walk_rounded,
-      MoveKind.strength => Icons.fitness_center_rounded,
-      MoveKind.stretch => Icons.self_improvement_rounded,
+String _kindIcon(Exercise e) => switch (kindOf(e)) {
+      MoveKind.move => 'walk',
+      MoveKind.strength => 'dumbbell',
+      MoveKind.stretch => 'mat',
     };
 
 /// Today's three: done ones ticked off, the next one open with the big button, the rest a tap
@@ -499,7 +500,7 @@ class _KindTile extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(color: done ? BloomColors.forest : BloomColors.oat, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
-        child: Icon(done ? Icons.check_rounded : _kindIcon(ex), color: done ? BloomColors.onForest : BloomColors.forest, size: size * .55),
+        child: Center(child: done ? Icon(Icons.check_rounded, color: BloomColors.onForest, size: size * .55) : PaintedIcon(_kindIcon(ex), size: size * .74)),
       );
 }
 
@@ -644,7 +645,7 @@ class _DoneCard extends StatelessWidget {
           decoration: BoxDecoration(color: BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rLg), border: Border.all(color: BloomColors.mustard)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              const Icon(Icons.auto_awesome_rounded, color: BloomColors.mustardPress),
+              const PaintedIcon('star', size: 28),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -668,7 +669,7 @@ class _DoneCard extends StatelessWidget {
           decoration: _cardDeco,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              const Icon(Icons.bedtime_outlined, color: BloomColors.sageDeep),
+              const PaintedIcon('rest', size: 28),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -720,7 +721,7 @@ class _MoveTileState extends State<_MoveTile> with SingleTickerProviderStateMixi
       width: 64,
       height: 64,
       decoration: BoxDecoration(color: BloomColors.oat, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
-      child: const Icon(Icons.directions_run_rounded, color: BloomColors.sageDeep, size: 34),
+      child: const Center(child: PaintedIcon('walk', size: 46)),
     ),
   );
 }
@@ -753,7 +754,7 @@ class _CheckInRow extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(color: done ? BloomColors.surface : BloomColors.mustardSoft, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
-                child: Icon(done ? Icons.check_rounded : Icons.nightlight_round, color: done ? BloomColors.forest : BloomColors.mustardPress, size: 22),
+                child: Center(child: done ? const Icon(Icons.check_rounded, color: BloomColors.forest, size: 22) : const PaintedIcon('moon', size: 30)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -783,7 +784,7 @@ class _CravingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TitlePill(
-        icon: const Icon(Icons.waves_rounded, size: TitlePill.iconSize, color: TitlePill.iconColor),
+        icon: const PaintedIcon('wave', size: TitlePill.artSize),
         label: 'Craving?',
         semantics: 'Craving something? Ride it out with Clover',
         onTap: onTap,

@@ -168,50 +168,61 @@ class FramedPortrait extends StatelessWidget {
       );
 }
 
-/// The one flag being worked toward: its frame-to-be, how far along, and the moves left.
+/// The headline of the Journey: the next portrait, how far along, the moves left, and the gallery so far (each
+/// frame opens its portrait).
 class NextPortraitCard extends StatelessWidget {
-  const NextPortraitCard({super.key, required this.journal, required this.next, this.onTap});
+  const NextPortraitCard({super.key, required this.journal, required this.next, required this.onOpen});
   final Journal journal;
   final Milestone next;
-  final VoidCallback? onTap;
+  final ValueChanged<int> onOpen;
 
   @override
   Widget build(BuildContext context) {
     final moves = (next.effort - journal.effort).clamp(0, 999).ceil();
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: cardDecoration(radius: BloomSpace.rMd).copyWith(border: Border.all(color: BloomColors.mustard, width: 2)),
-        child: Row(children: [
-          FramedPortrait(index: milestones.indexOf(next), reached: false),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Eyebrow('Next portrait'),
-              const SizedBox(height: 2),
-              Text('${next.tag} · ${next.title}', style: BloomText.headline.copyWith(fontSize: 17, height: 22 / 17)),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: journal.toward(next)),
-                  duration: const Duration(milliseconds: 900),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, v, _) => LinearProgressIndicator(value: v, minHeight: 8, color: BloomColors.mustard, backgroundColor: BloomColors.paperSunk),
+    final at = milestones.indexOf(next);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: cardDecoration(radius: BloomSpace.rMd).copyWith(border: Border.all(color: BloomColors.mustard, width: 2)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Eyebrow('Next portrait · ${next.title}'),
+        const SizedBox(height: 4),
+        Text(moves == 0 ? 'Ready to hang!' : 'About $moves more ${moves == 1 ? 'move' : 'moves'} to go', style: BloomText.headline.copyWith(fontSize: 18, height: 24 / 18)),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: journal.toward(next)),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (context, v, _) => LinearProgressIndicator(value: v, minHeight: 8, color: BloomColors.mustard, backgroundColor: BloomColors.paperSunk),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('Planned for ${shortDate(journal.dateOf(next))} · moves done early bring it sooner', style: BloomText.caption),
+        const SizedBox(height: 12),
+        Row(children: [
+          for (var i = 0; i < milestones.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Semantics(
+              button: true,
+              label: '${milestones[i].title} portrait',
+              child: GestureDetector(
+                onTap: () => onOpen(i),
+                child: Container(
+                  decoration: i == at ? BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: BloomColors.mustard, width: 2)) : null,
+                  padding: EdgeInsets.all(i == at ? 2 : 4),
+                  child: FramedPortrait(index: i, reached: journal.reached(milestones[i]), width: 40, border: 3),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text('About $moves more ${moves == 1 ? 'move' : 'moves'} · planned for ${shortDate(journal.dateOf(next))}', style: BloomText.caption),
-            ]),
-          ),
+            ),
+          ],
         ]),
-      ),
+      ]),
     );
   }
 }
 
-/// Once every flag is reached: no more portraits, just the two of them keeping at it.
+/// Once every portrait is hung: no more portraits, just the two of them keeping at it.
 class KeepGoingCard extends StatelessWidget {
   const KeepGoingCard({super.key, required this.journal});
   final Journal journal;
@@ -224,12 +235,12 @@ class KeepGoingCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: BloomColors.forestSoft, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('EVERY FLAG REACHED', style: BloomText.label.copyWith(color: BloomColors.forestPress)),
+        Text('EVERY PORTRAIT HUNG', style: BloomText.label.copyWith(color: BloomColors.forestPress)),
         const SizedBox(height: 2),
         Text('Keep going, together', style: BloomText.headline.copyWith(fontSize: 17)),
         const SizedBox(height: 4),
         Text(
-          'The gallery is full. Clover’s staying fit with you. $moves ${moves == 1 ? 'move' : 'moves'} ${since == null ? 'in all' : 'since ${milestones.last.tag}'} · best week: ${journal.bestWeek} moves.',
+          'The gallery is full. Clover’s staying fit with you. $moves ${moves == 1 ? 'move' : 'moves'} ${since == null ? 'in all' : 'since ${milestones.last.title.toLowerCase()}'} · best week: ${journal.bestWeek} moves.',
           style: BloomText.caption.copyWith(color: BloomColors.forestPress, fontSize: 14, height: 20 / 14),
         ),
       ]),
@@ -249,18 +260,18 @@ Future<void> showPortrait(BuildContext context, Journal journal, int index) {
       ? (when == null ? 'Reached.' : 'Reached ${shortDate(when)}.')
       : m == next
           ? 'About $moves more ${moves == 1 ? 'move' : 'moves'} to hang this one. Planned for ${shortDate(journal.dateOf(m))}.'
-          : 'Comes after the ${next!.tag} flag. One frame at a time.';
+          : 'Comes after ${next!.title.toLowerCase()}. One frame at a time.';
   return showBloomSheet<void>(
     context,
     (c) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
       Center(child: FramedPortrait(index: index, reached: reached, width: 210, border: 10)),
       const SizedBox(height: 18),
-      Text('${m.tag} · ${m.title}${reached ? '' : (m == next ? ' · up next' : ' · later')}', style: BloomText.title),
+      Text('${m.title}${reached ? '' : (m == next ? ' · up next' : ' · later')}', style: BloomText.title),
       const SizedBox(height: 4),
       if (reached) Text(m.line, style: BloomText.body),
       Text(detail, style: BloomText.bodyMuted.copyWith(fontSize: 15)),
       const SizedBox(height: 18),
-      LedgeButton(label: 'Back to the hallway', variant: LedgeVariant.secondary, onPressed: () => Navigator.of(c).pop()),
+      LedgeButton(label: 'Back to the stairs', variant: LedgeVariant.secondary, onPressed: () => Navigator.of(c).pop()),
     ]),
   );
 }

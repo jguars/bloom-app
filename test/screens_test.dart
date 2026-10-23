@@ -61,7 +61,7 @@ Future<void> _shot(WidgetTester tester, String name, Widget home, {List<String> 
     child: MaterialApp(theme: bloomTheme(), debugShowCheckedModeBanner: false, builder: (c, child) => FxLayer.wrap(child!), home: home),
   ));
   await tester.runAsync(() async {
-    for (final a in [CloverStill.asset, ...assets]) {
+    for (final a in [CloverStill.asset, ..._iconArt, ...assets]) {
       await precacheImage(AssetImage(a), tester.element(find.byType(MaterialApp)));
     }
   });
@@ -132,6 +132,8 @@ Map<String, Object> _evening({String? answer}) {
 /// Every Shop item's picture, so the Shop shots don't catch them still decoding.
 final _shopArt = [for (final f in Directory('assets/shop').listSync()) f.path];
 final _planArt = [for (final f in Directory('assets/plan').listSync()) f.path];
+// The painted icons show on most screens: every shot loads them.
+final _iconArt = [for (final f in Directory('assets/icons').listSync()) f.path];
 
 void main() {
   setUpAll(_fonts);
@@ -264,30 +266,47 @@ void main() {
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('Mochi'));
       }));
+  // For the deck: Habits mid-day, two kept, nothing popping up.
+  testWidgets('deck-habits', (t) {
+    final ms = DateTime.now().subtract(const Duration(hours: 2)).millisecondsSinceEpoch;
+    return _shot(t, 'deck-habits', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], prefs: {
+      'bloom.plan.v2': jsonEncode({
+        'day': dayKey(DateTime.now()),
+        'logs': {'m1': [ms, ms + 1000, ms + 2000, ms + 3000, ms + 4000], 'm2': [ms]},
+        'rules': [
+          {'id': 'm1', 'kind': 'more', 'title': 'Drink water', 'icon': 'water', 'goal': 8},
+          {'id': 'm2', 'kind': 'more', 'title': 'Morning walk', 'icon': 'walk'},
+          {'id': 'm3', 'kind': 'more', 'title': '10-minute stretch', 'icon': 'stretch'},
+          {'id': 's1', 'kind': 'skip', 'title': 'Sugary drinks', 'icon': 'drink', 'goal': 3},
+          {'id': 's2', 'kind': 'skip', 'title': 'Late-night snacks', 'icon': 'snack'},
+        ],
+      }),
+    });
+  });
   testWidgets('plan-edit', (t) => _shot(t, 'plan-edit', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
         await t.tap(find.text('Morning walk'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 600));
       }));
+  // Habits is one list: the ones to avoid sit below the ones to do.
   testWidgets('plan-donts', (t) => _shot(t, 'plan-donts', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
-        await t.tap(find.text('Don’ts'));
-        await t.pump();
+        await t.scrollUntilVisible(find.text('Add one to avoid'), 200, scrollable: find.byType(Scrollable).first);
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.bySemanticsLabel(RegExp('^Said no to Sugary drinks')));
         await t.pump(const Duration(seconds: 4));
         await t.pump(const Duration(seconds: 1));
       }));
   testWidgets('plan-sheet', (t) => _shot(t, 'plan-sheet', const Scaffold(body: PlanScreen()), assets: ['assets/scenes/balcony.jpg', ..._planArt], then: (t) async {
-        await t.scrollUntilVisible(find.text('Add a Do'), 200, scrollable: find.byType(Scrollable).first);
+        await t.scrollUntilVisible(find.text('Add a habit to do'), 200, scrollable: find.byType(Scrollable).first);
         await t.pump(const Duration(milliseconds: 600));
-        await t.tap(find.text('Add a Do'));
+        await t.tap(find.text('Add a habit to do'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 600));
         await t.tap(find.text('A few times'));
       }));
   testWidgets('progress-empty', (t) => _shot(t, 'progress-empty', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg']));
   testWidgets('progress', (t) => _shot(t, 'progress', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed()));
-  // Swiped up, the stairs tuck away and the Together/Habits/Weight switch docks under the slim title.
+  // Swiped up, the stairs tuck away and the Journey/Weight switch docks under the slim title.
   testWidgets('progress-scrolled', (t) => _shot(t, 'progress-scrolled', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -900));
         await t.pump(const Duration(milliseconds: 600));
@@ -300,7 +319,7 @@ void main() {
         await t.pump(const Duration(milliseconds: 400));
         await t.tap(find.bySemanticsLabel(RegExp(r'^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day ')).at(4));
       }));
-  testWidgets('progress-habits', (t) => _shot(t, 'progress-habits', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', ..._planArt], prefs: {
+  testWidgets('progress-noweight', (t) => _shot(t, 'progress-noweight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg', ..._planArt], prefs: {
         ..._seed(),
         'bloom.plan.v2': jsonEncode({
           'day': dayKey(DateTime.now()),
@@ -316,10 +335,8 @@ void main() {
           ],
         }),
       }, then: (t) async {
-        await t.tap(find.text('Habits'));
-        await t.pump();
-        await t.pump(const Duration(milliseconds: 400));
-        await t.drag(find.byType(Scrollable).first, const Offset(0, -420));
+        // Without weight tracked, Progress is one page: the journey and the reports.
+        await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
   testWidgets('progress-weight', (t) => _shot(t, 'progress-weight', const Scaffold(body: ProgressScreen()), assets: ['assets/scenes/stairs-day.jpg'], prefs: _seed(), then: (t) async {
         await t.tap(find.text('Weight'));
@@ -335,16 +352,16 @@ void main() {
         await t.tap(find.text('Weight'));
         await t.pump();
         await t.pump(const Duration(milliseconds: 400));
-        await t.drag(find.byType(Scrollable).first, const Offset(0, -900));
+        await t.scrollUntilVisible(find.text('Log today’s weight'), 200, scrollable: find.byType(Scrollable).first);
         await t.pump(const Duration(milliseconds: 600));
-        await t.tap(find.text('Log weight'));
+        await t.tap(find.text('Log today’s weight'));
         for (var i = 0; i < 10; i++) {
           await t.pump(const Duration(milliseconds: 100));
         }
         await t.tap(find.bySemanticsLabel('Decrease today’s weight'));
         await t.tap(find.bySemanticsLabel('Decrease today’s weight'));
       }));
-  testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed()));
+  testWidgets('profile', (t) => _shot(t, 'profile', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg', 'assets/cats/avatar-clover.png'], prefs: _seed()));
   testWidgets('settings', (t) => _shot(t, 'settings', const SettingsScreen(), prefs: _seed()));
   // Membership, for testing both plans: free with the way to Plus; Plus (a test purchase) with cancelling.
   testWidgets('subscription-free', (t) => _shot(t, 'subscription-free', const SubscriptionScreen(), prefs: _seed()));
@@ -377,7 +394,7 @@ void main() {
     await container.read(premiumProvider.notifier).cancel();
     expect(container.read(premiumProvider).active, isFalse);
   });
-  testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg'], prefs: _seed(), then: (t) async {
+  testWidgets('profile-scrolled', (t) => _shot(t, 'profile-scrolled', const Scaffold(body: ProfileScreen()), assets: ['assets/scenes/bedroom-empty.jpg', 'assets/cats/avatar-clover.png'], prefs: _seed(), then: (t) async {
         await t.drag(find.byType(Scrollable).first, const Offset(0, -700));
       }));
   testWidgets('weekly', (t) => _shot(t, 'weekly', const WeeklyScreen(), prefs: _seed()));

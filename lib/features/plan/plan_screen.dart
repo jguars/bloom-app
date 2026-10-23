@@ -10,6 +10,7 @@ import '../../app/sfx.dart';
 import '../../app/shell.dart';
 import '../../app/theme.dart';
 import '../../data/plan.dart';
+import '../../ui/painted_icon.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
 import '../../ui/fx_layer.dart';
@@ -21,9 +22,9 @@ import '../food/food_check_screen.dart';
 import 'rule_sheet.dart';
 import '../../ui/rule_icon.dart';
 
-/// The balcony garden: the Do's and the Don'ts, a swipe apart. Each list keeps what's up next on
-/// top (the most frequent first); a logged rule sinks to the bottom, and a repeatable one floats
-/// back up after its rest.
+/// The balcony garden: your habits, in one list: the ones to do, then the ones to avoid. Each section keeps
+/// what's up next on top (the most frequent first); a logged habit sinks to the bottom, and a repeatable one
+/// floats back up after its rest. Up top, today's target: keep three.
 class PlanScreen extends ConsumerStatefulWidget {
   const PlanScreen({super.key});
 
@@ -32,7 +33,6 @@ class PlanScreen extends ConsumerStatefulWidget {
 }
 
 class _PlanScreenState extends ConsumerState<PlanScreen> {
-  int _tab = 0;
   Timer? _back;
   DateTime? _backAt;
 
@@ -77,35 +77,17 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
       action: CloverAction.balconyWater,
       room: Room.plan,
       line: line,
-      title: 'Plan',
-      panel: _tab,
+      title: 'Habits',
       line2: 'Small swaps add up. You’ve got this.',
       titleTrailing: const _PhotoCheckButton(),
-      subtitle: AnimatedSwitcher(
-        duration: BloomMotion.base,
-        layoutBuilder: (current, previous) => Stack(alignment: Alignment.centerLeft, children: [...previous, ?current]),
-        child: Text(
-          logs == 0 ? 'Nothing logged yet today' : '$logs logged today · +${plan.pawsToday} paws',
-          key: ValueKey(logs),
-          style: BloomText.bodyMuted.copyWith(fontSize: 15),
-        ),
-      ),
-      // The scene, title and switch stay put; only the lists scroll, under them.
-      pinned: [
-        SegmentedSwitch(labels: const ['Do’s', 'Don’ts'], index: _tab, onChanged: (i) => setState(() => _tab = i)),
-      ],
+      subtitle: Text('Small daily choices that add up. Keep $kDailyHabits a day.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
+      // One list (no sub-panels): the room tucks away as it scrolls, the title docks.
+      pinned: const [],
       children: [
-        SwipePanels(
-          index: _tab,
-          count: 2,
-          onChanged: (i) => setState(() => _tab = i),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 320),
-            layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
-            transitionBuilder: panelTransition,
-            child: _Panel(key: ValueKey(_tab), kind: PlanKind.values[_tab], plan: plan, now: now),
-          ),
-        ),
+        if (plan.rules.isNotEmpty) ...[_TodayTarget(plan: plan), const SizedBox(height: 18)],
+        _Panel(kind: PlanKind.more, plan: plan, now: now),
+        const SizedBox(height: 22),
+        _Panel(kind: PlanKind.skip, plan: plan, now: now),
       ],
     );
   }
@@ -114,7 +96,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
 /// One list. Rows sit in fixed slots so that when one is logged it can glide down to its new place
 /// (after a beat, so the tick lands first).
 class _Panel extends StatefulWidget {
-  const _Panel({super.key, required this.kind, required this.plan, required this.now});
+  const _Panel({required this.kind, required this.plan, required this.now});
   final PlanKind kind;
   final Plan plan;
   final DateTime now;
@@ -172,13 +154,15 @@ class _PanelState extends State<_Panel> {
     const curve = Cubic(.2, 1.1, .35, 1);
     const move = Duration(milliseconds: 520);
     final add = LedgeButton(
-      label: more ? 'Add a Do' : 'Add a Don’t',
+      label: more ? 'Add a habit to do' : 'Add one to avoid',
       variant: LedgeVariant.secondary,
       leading: const Icon(Icons.add_rounded, color: BloomColors.ink),
       onPressed: () => showBloomSheet<void>(context, (c) => RuleSheet(kind: widget.kind)),
     );
     if (rules.isEmpty) {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(more ? 'TO DO' : 'TO AVOID', style: BloomText.label),
+        const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(color: BloomColors.paperSunk, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
@@ -210,8 +194,8 @@ class _PanelState extends State<_Panel> {
         curve: curve,
         height: at.height,
         child: Stack(clipBehavior: Clip.none, children: [
-          header(at.allDone ? (more ? 'ALL CAUGHT UP' : 'ALL RESISTED FOR NOW') : (more ? 'UP NEXT' : 'RESIST NEXT'), 0),
-          header('LOGGED TODAY', at.second),
+          header(at.allDone ? (more ? 'TO DO · ALL DONE' : 'TO AVOID · ALL KEPT') : (more ? 'TO DO' : 'TO AVOID'), 0),
+          header(more ? 'DONE TODAY' : 'SAID NO TODAY', at.second),
           for (final r in rules)
             AnimatedPositioned(
               key: ValueKey(r.id),
@@ -305,7 +289,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
 
   String _meta() {
     final r = widget.rule, n = widget.count, more = r.kind == PlanKind.more;
-    if (!r.repeats) return n > 0 ? (more ? 'Done today · +$kPawsPerRule paws' : 'Kept today · +$kPawsPerRule paws') : (more ? 'Once a day' : 'All day');
+    if (!r.repeats) return n > 0 ? (more ? 'Done today · +$kPawsPerRule paws' : 'Kept today · +$kPawsPerRule paws') : (more ? 'Once a day' : 'Tick when you’ve said no today');
     final said = more ? '' : 'Said no ';
     if (n >= r.goal) return '$said$n today · goal met';
     if (!widget.due && widget.backAt != null) return 'Back up in ${_until(widget.backAt!.difference(widget.now))}';
@@ -321,7 +305,7 @@ class _RuleRowState extends ConsumerState<_RuleRow> {
   Widget build(BuildContext context) {
     final r = widget.rule;
     final more = r.kind == PlanKind.more;
-    final (tint, deep) = more ? (BloomColors.forestSoft, BloomColors.forest) : (BloomColors.claySoft, BloomColors.clayDeep);
+    final (tint, deep) = more ? (BloomColors.forestSoft, BloomColors.forest) : (BloomColors.mustardSoft, BloomColors.forest);
     final dim = !widget.due;
     // No swipe-to-remove: a swipe always switches between the Do's and the Don'ts. Removing lives
     // in the edit sheet.
@@ -396,10 +380,10 @@ class _LogButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deep = more ? BloomColors.forest : BloomColors.clayDeep;
-    final fill = !due ? BloomColors.surface : (more ? BloomColors.forest : BloomColors.claySoft);
-    final fg = due && more ? BloomColors.onForest : deep;
-    final ledge = due && more ? BloomColors.forestPress : (due ? BloomColors.clayDeep.withValues(alpha: .35) : BloomColors.line);
+    const deep = BloomColors.forest;
+    final fill = !due ? BloomColors.surface : BloomColors.forest;
+    final fg = due ? BloomColors.onForest : deep;
+    final ledge = due ? BloomColors.forestPress : BloomColors.line;
     return Semantics(
       button: true,
       label: more ? 'Log $label' : 'Said no to $label',
@@ -442,8 +426,8 @@ class _Check extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fill = on ? (skip ? BloomColors.claySoft : BloomColors.forest) : BloomColors.surface;
-    final fg = on ? (skip ? BloomColors.clayDeep : BloomColors.onForest) : BloomColors.lineStrong;
+    final fill = on ? BloomColors.forest : BloomColors.surface;
+    final fg = on ? BloomColors.onForest : BloomColors.lineStrong;
     return Semantics(
       checked: on,
       button: true,
@@ -463,10 +447,11 @@ class _Check extends StatelessWidget {
             decoration: BoxDecoration(
               color: fill,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: on ? (skip ? BloomColors.clayDeep : BloomColors.forest) : BloomColors.lineStrong, width: 2),
-              boxShadow: [BoxShadow(color: on && !skip ? BloomColors.forestPress : BloomColors.line, offset: const Offset(0, 3))],
+              border: Border.all(color: on ? BloomColors.forest : BloomColors.lineStrong, width: 2),
+              boxShadow: [BoxShadow(color: on ? BloomColors.forestPress : BloomColors.line, offset: const Offset(0, 3))],
             ),
-            child: Icon(skip ? Icons.close_rounded : Icons.check_rounded, color: fg, size: 22, weight: 700),
+            // A habit to avoid is kept by saying no: a check, like any other win.
+            child: Icon(Icons.check_rounded, color: fg, size: 22, weight: 700),
           ),
         ),
       ),
@@ -474,15 +459,63 @@ class _Check extends StatelessWidget {
   }
 }
 
-/// "On my plan?": a deep-sky pill with a camera badge, opposite the Plan title. Opens the photo check.
+/// "Snap a plate": the shared title pill with a camera, opposite the Habits title. Opens the photo check.
 class _PhotoCheckButton extends StatelessWidget {
   const _PhotoCheckButton();
 
   @override
   Widget build(BuildContext context) => TitlePill(
-        icon: const Icon(Icons.photo_camera_outlined, size: TitlePill.iconSize, color: TitlePill.iconColor),
-        label: 'On my plan?',
+        icon: const PaintedIcon('camera', size: TitlePill.artSize),
+        label: 'Snap a plate',
         semantics: 'Is this on my plan? Check a photo',
         onTap: () => Navigator.of(context).push(bloomRoute(const FoodCheckScreen())),
       );
+}
+
+/// How many habits make a kept day.
+const kDailyHabits = 3;
+
+/// Today's target, above the list: a ring of the habits kept today (each habit counts once, however many times
+/// it's logged) toward [kDailyHabits].
+class _TodayTarget extends StatelessWidget {
+  const _TodayTarget({required this.plan});
+  final Plan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final kept = plan.rules.where((r) => plan.count(r.id) > 0).length;
+    final goal = plan.rules.length < kDailyHabits ? plan.rules.length : kDailyHabits;
+    final done = kept >= goal;
+    final left = goal - kept;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+      decoration: BoxDecoration(color: done ? BloomColors.forestSoft : BloomColors.paperSunk, borderRadius: BorderRadius.circular(BloomSpace.rMd)),
+      child: Row(children: [
+        SizedBox(
+          width: 54,
+          height: 54,
+          child: Stack(alignment: Alignment.center, children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(end: goal == 0 ? 0 : (kept / goal).clamp(0.0, 1.0)),
+              duration: BloomMotion.slow,
+              curve: BloomMotion.spring,
+              builder: (context, v, _) => SizedBox.expand(child: CircularProgressIndicator(value: v, strokeWidth: 7, strokeCap: StrokeCap.round, color: BloomColors.forest, backgroundColor: BloomColors.line)),
+            ),
+            Text('$kept/$goal', style: BloomText.headline.copyWith(fontSize: 15, fontFeatures: const [FontFeature.tabularFigures()])),
+          ]),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(done ? 'Today’s habits kept!' : '$kept of $goal kept today', style: BloomText.headline.copyWith(fontSize: 17)),
+            const SizedBox(height: 2),
+            Text(
+              done ? 'Today counts as an active day · +${plan.pawsToday} paws' : (left == 1 ? 'One more makes today an active day' : '$left more make today an active day'),
+              style: BloomText.caption,
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
 }

@@ -11,6 +11,7 @@ import '../../data/journal.dart';
 import '../../data/plan.dart';
 import '../../data/profile.dart';
 import '../../data/weight.dart';
+import '../../ui/painted_icon.dart';
 import '../../ui/bits.dart';
 import '../../ui/clover_rive.dart';
 import '../../ui/clover_scene.dart';
@@ -18,13 +19,17 @@ import '../../ui/fx_layer.dart';
 import '../../ui/ledge_button.dart';
 import '../../ui/room_frame.dart';
 import '../../ui/weight_chart.dart';
+import '../profile/plan_report_screen.dart';
+import '../profile/weekly_screen.dart';
+import '../profile/weight_history_screen.dart';
+import '../today/flow.dart';
 import '../streak/streak_screens.dart' show StreakChip;
 import 'journey.dart';
 import 'panels.dart';
 import 'weight_sheet.dart';
 
-/// The upstairs hallway, where her portraits hang: the week together, the plan's habits, and (last)
-/// your weight. Tap a frame to see its portrait up close.
+/// The stairs, where her portraits hang. Two jobs: the Journey (the next portrait, the week together, the reports)
+/// and, for people who track it, Weight. Tap a frame to see its portrait up close.
 class ProgressScreen extends ConsumerStatefulWidget {
   const ProgressScreen({super.key});
 
@@ -43,7 +48,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     if (saved != true || !mounted) return;
     final after = ref.read(weightProvider).latest?.kg;
     setState(() {
-      _view = 2;
+      _view = 1;
       _reply = goalOnly
           ? 'A goal! We’ll get there together.'
           : before == null
@@ -91,20 +96,79 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     final units = ref.watch(unitsProvider);
     final next = journal.next;
     final nextIndex = next == null ? null : milestones.indexOf(next);
-    final day = journal.dayNumber + 1;
-    final subtitle = next == null
-        ? 'Day $day · keep going'
-        : journal.dateOf(next).isAfter(journal.todayDate)
-            ? 'Day $day of 60 · next flag on ${shortDate(journal.dateOf(next))}'
-            : 'Day $day of 60 · next flag is in reach';
+    // Weight is optional: its panel shows once someone weighs in or sets a goal; until then Progress is one page.
+    final tracksWeight = log.entries.isNotEmpty || log.goalKg != null;
+    final view = tracksWeight ? _view : 0;
     final line = _reply ??
-        (log.entries.isEmpty && _view == 2
+        (view == 1 && log.entries.isEmpty
             ? 'Hop on the scale? Only you see it.'
             : next == null
                 ? 'We made it! Look at us!'
                 : journal.totalMoves == 0
                     ? 'Our road starts here!'
                     : 'Look how far we’ve come!');
+    final reports = GroupCard(children: [
+      GroupRow(
+        leading: const _RowIcon('calendar'),
+        title: 'Weekly summary',
+        caption: 'Your week with ${ref.watch(profileProvider.select((p) => p.catName))}',
+        onTap: () => Navigator.of(context).push(bloomRoute(const WeeklyScreen())),
+      ),
+      GroupRow(
+        leading: const _RowIcon('seedling'),
+        title: 'Habit report',
+        caption: 'Each habit, day by day',
+        onTap: () => Navigator.of(context).push(bloomRoute(const PlanReportScreen())),
+        last: !tracksWeight,
+      ),
+      if (tracksWeight)
+        GroupRow(
+          leading: const _RowIcon('scale'),
+          title: 'Weight history',
+          caption: log.entries.isEmpty ? 'No weigh-ins yet' : '${log.entries.length} ${log.entries.length == 1 ? 'log' : 'logs'} · latest ${units.weight(log.latest!.kg)}',
+          onTap: () => Navigator.of(context).push(bloomRoute(const WeightHistoryScreen())),
+          last: true,
+        ),
+    ]);
+    final journey = Column(key: const ValueKey(0), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (next == null) KeepGoingCard(journal: journal) else NextPortraitCard(journal: journal, next: next, onOpen: (i) => showPortrait(context, journal, i)),
+      const SizedBox(height: 14),
+      TogetherView(journal: journal, plan: plan),
+      const SizedBox(height: 20),
+      const Eyebrow('Reports'),
+      const SizedBox(height: 10),
+      reports,
+      if (!tracksWeight) ...[
+        const SizedBox(height: 14),
+        GroupCard(children: [
+          GroupRow(
+            leading: const _RowIcon('scale'),
+            title: 'Track your weight',
+            caption: 'Optional · only you see it',
+            onTap: _openSheet,
+            last: true,
+          ),
+        ]),
+      ],
+    ]);
+    final weight = Column(key: const ValueKey(1), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _WeightView(log: log, units: units, onGoal: () => _openSheet(goalOnly: true), onLog: _openSheet),
+      const SizedBox(height: 16),
+      KeyedSubtree(
+        key: _logKey,
+        child: LedgeButton(label: 'Log today’s weight', leading: const Icon(Icons.monitor_weight_outlined, color: BloomColors.onForest), onPressed: _openSheet),
+      ),
+      const SizedBox(height: 14),
+      GroupCard(children: [
+        GroupRow(
+          leading: const _RowIcon('scale'),
+          title: 'Weight history',
+          caption: log.entries.isEmpty ? 'No weigh-ins yet' : '${log.entries.length} ${log.entries.length == 1 ? 'log' : 'logs'}',
+          onTap: () => Navigator.of(context).push(bloomRoute(const WeightHistoryScreen())),
+          last: true,
+        ),
+      ]),
+    ]);
     return RoomFrame(
       asset: 'assets/scenes/stairs-day.jpg',
       // She daydreams under the next milestone's empty frame (or admires the full gallery).
@@ -118,47 +182,47 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       line: line,
       bubbleLeft: 150,
       title: 'Progress',
-      // The streak sits on the title row, as the Plan's photo check and the Shop's Plus do.
+      // The streak sits on the title row, as the Habits' photo check and the Shop's Plus do.
       titleTrailing: const StreakChip(),
-      line2: 'Every flag we reach gets a portrait here!',
-      subtitle: Text(subtitle, style: BloomText.bodyMuted.copyWith(fontSize: 15)),
-      panel: _view,
-      // As in the Shop and the Plan: the stairs slide away as the panels scroll, and the switch docks.
-      pinned: [
-        SegmentedSwitch(labels: const ['Together', 'Habits', 'Weight'], index: _view, onChanged: _setView),
-      ],
+      line2: 'Every milestone we reach gets a portrait here!',
+      subtitle: Text('Every move together climbs the stairs.', style: BloomText.bodyMuted.copyWith(fontSize: 15)),
+      panel: view,
+      // Two jobs, two panels: the journey (first) and, for people who track it, weight.
+      pinned: tracksWeight ? [SegmentedSwitch(labels: const ['Journey', 'Weight'], index: view, onChanged: _setView)] : const [],
       children: [
-        SwipePanels(
-          index: _view,
-          count: 3,
-          onChanged: _setView,
-          child: AnimatedSwitcher(
-            duration: BloomMotion.base,
-            switchInCurve: BloomMotion.enter,
-            switchOutCurve: BloomMotion.leave,
-            layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
-            transitionBuilder: (c, a) => panelTransition(c, a),
-            child: KeyedSubtree(
-              key: ValueKey(_view),
-              child: switch (_view) {
-                0 => TogetherView(journal: journal, plan: plan, onNext: () => showPortrait(context, journal, nextIndex ?? 0)),
-                1 => HabitsView(journal: journal, plan: plan),
-                _ => _WeightView(log: log, units: units, onGoal: () => _openSheet(goalOnly: true), onLog: _openSheet),
-              },
+        if (!tracksWeight)
+          journey
+        else
+          SwipePanels(
+            index: view,
+            count: 2,
+            onChanged: _setView,
+            child: AnimatedSwitcher(
+              duration: BloomMotion.base,
+              switchInCurve: BloomMotion.enter,
+              switchOutCurve: BloomMotion.leave,
+              layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
+              transitionBuilder: (c, a) => panelTransition(c, a),
+              child: view == 0 ? journey : weight,
             ),
           ),
-        ),
-        // Logging belongs to the weight panel only.
-        if (_view == 2) ...[
-          const SizedBox(height: 20),
-          KeyedSubtree(
-            key: _logKey,
-            child: LedgeButton(label: 'Log weight', leading: const Icon(Icons.monitor_weight_outlined, color: BloomColors.onForest), onPressed: _openSheet),
-          ),
-        ],
       ],
     );
   }
+}
+
+class _RowIcon extends StatelessWidget {
+  const _RowIcon(this.icon);
+
+  /// A painted icon's name (assets/icons).
+  final String icon;
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(color: BloomColors.oat, borderRadius: BorderRadius.circular(BloomSpace.rSm)),
+        child: Center(child: PaintedIcon(icon, size: 30)),
+      );
 }
 
 class _WeightView extends StatelessWidget {

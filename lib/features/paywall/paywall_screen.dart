@@ -91,7 +91,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Column(key: const ValueKey('offer'), crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       RiseIn(child: Text('Grow together with Bloom Plus', style: BloomText.display, textAlign: TextAlign.center)),
       const SizedBox(height: 14),
-      for (final (i, p) in const ['All 40 moves, with every piece of gear', 'Weekly summary and plan report', 'New outfits and room decor for Clover'].indexed)
+      for (final (i, p) in const ['Every move, with every piece of gear', 'Weekly summary and habit report', 'New outfits and room decor for Clover'].indexed)
         RiseIn(
           delay: Duration(milliseconds: 120 + 70 * i),
           child: Padding(

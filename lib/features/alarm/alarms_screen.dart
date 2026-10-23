@@ -52,7 +52,7 @@ class _AlarmsScreenState extends ConsumerState<AlarmsScreen> {
     }
 
     return SubPage(
-      from: 'Profile',
+      from: 'Settings',
       title: 'Wake-up alarms',
       bottom: LedgeButton(label: 'Add alarm', leading: const Icon(Icons.add_alarm_rounded, color: BloomColors.onForest), onPressed: () => _edit()),
       children: [
