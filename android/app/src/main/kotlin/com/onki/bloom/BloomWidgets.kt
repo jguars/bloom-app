@@ -1,4 +1,4 @@
-package com.setir.bloom
+package com.onki.bloom
 
 import android.appwidget.AppWidgetManager
 import android.content.Context

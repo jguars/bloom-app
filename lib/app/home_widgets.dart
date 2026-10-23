@@ -11,8 +11,8 @@ import '../data/today.dart';
 /// Home-screen widgets (Android). Names match the Kotlin providers in
 /// android/app/src/main/kotlin/com/setir/bloom/BloomWidgets.kt.
 enum BloomWidget {
-  today('com.setir.bloom.BloomTodayWidget', 'Today', 'Clover, her line and today’s moves'),
-  clover('com.setir.bloom.BloomCloverWidget', 'Clover', 'Just her, with today’s count');
+  today('com.onki.bloom.BloomTodayWidget', 'Today', 'Clover, her line and today’s moves'),
+  clover('com.onki.bloom.BloomCloverWidget', 'Clover', 'Just her, with today’s count');
 
   const BloomWidget(this.androidName, this.title, this.caption);
   final String androidName, title, caption;

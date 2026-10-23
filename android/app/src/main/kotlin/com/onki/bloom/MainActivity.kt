@@ -1,4 +1,4 @@
-package com.setir.bloom
+package com.onki.bloom
 
 import android.os.Build
 import android.os.Bundle
